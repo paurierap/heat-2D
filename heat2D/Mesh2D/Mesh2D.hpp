@@ -2,18 +2,12 @@
 #define MESH_HPP
 
 #include <unordered_map>
-#include <stdexcept>
 #include <vector>
 
 namespace spatial
 {
 
-struct Node2D
-{
-    int nodeID_;
-    double x_;
-    double y_;
-};
+enum class DomainSide {Left, Right, Bottom, Top};
 
 struct Domain2D
 {
@@ -23,7 +17,17 @@ struct Domain2D
     double top_;   
 };
 
-enum class Side {Left, Right, Bottom, Top};
+struct Node2D
+{
+    int nodeID_;
+    double x_;
+    double y_;
+};
+
+struct BoundaryNode2D : Node2D
+{
+    std::vector<DomainSide> sides_;
+};
 
 class Mesh2D
 {
@@ -31,13 +35,12 @@ class Mesh2D
 
         // nodes_ contains all nodes, inner_nodes_, boundary_nodes_ and boundaries_ contain IDs
         std::vector<Node2D> nodes_;
+        std::vector<BoundaryNode2D> boundary_nodes_;
+        std::vector<int> node_to_boundary_node;
         std::vector<int> inner_nodes_;
-        std::vector<int> boundary_nodes_;
-        std::vector<bool> is_boundary_;
-        std::unordered_map<Side, std::vector<int>> boundaries_;
+        std::unordered_map<DomainSide, std::vector<int>> boundaries_;
         Domain2D domain_;
 
-        // Populate the data members:
         virtual void meshDomain() = 0;
 
     public:
@@ -56,14 +59,21 @@ class Mesh2D
         // Getters:
         inline const Domain2D& getDomain() const {return domain_;};
         inline const std::vector<Node2D>& getNodes() const {return nodes_;};
+        inline const std::vector<BoundaryNode2D>& getBoundaryNodes() const {return boundary_nodes_;};
         inline const std::vector<int>& getInnerNodes() const {return inner_nodes_;};
-        inline const std::vector<int>& getBoundaryNodes() const {return boundary_nodes_;};
-        inline const std::unordered_map<Side, std::vector<int>>& getBoundaries() const {return boundaries_;};
-        inline const Node2D& getNode(int nodeID) const {return nodes_[nodeID];}
+        inline const std::unordered_map<DomainSide, std::vector<int>>& getBoundaries() const {return boundaries_;};
+        inline const Node2D& getNode(int nodeID) const {return nodes_[nodeID];};
+        inline const BoundaryNode2D& getBoundaryNode(int nodeID) const 
+        {
+            if (isInner(nodeID)) throw std::invalid_argument("Selected node is not on the boundary.");
+            return boundary_nodes_[node_to_boundary_node[nodeID]];
+        };
+        const std::pair<DomainSide, DomainSide> getBoundaryNormalDirections(DomainSide) const;
+        const std::pair<DomainSide, DomainSide> getBoundaryTangentialDirections(DomainSide) const;
 
         // Other helpers:
-        inline bool isInner(int nodeID) const {return !is_boundary_[nodeID];};
-        inline bool isBoundary(int nodeID) const {return is_boundary_[nodeID];};
+        inline bool isInner(int nodeID) const {return node_to_boundary_node[nodeID] == -1;};
+        inline bool isBoundary(int nodeID) const {return !isInner(nodeID);};
 };
 
 }; // namespace

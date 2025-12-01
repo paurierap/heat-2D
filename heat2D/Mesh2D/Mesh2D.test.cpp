@@ -1,11 +1,13 @@
 #include <gtest/gtest.h>
+
+#include <unordered_set>
 #include <vector>
 #include "StructuredMesh2D.hpp"
 
 class StructuredMesh2DTest : public testing::Test
 {
     protected: 
-        const int nx = 21, ny = 21;
+        const int nx = 11, ny = 21;
         const double left = 0, right = 1, bottom = 0, top = 1;
         std::vector<spatial::Node2D> nodes;
         spatial::StructuredMesh2D mesh{left,right,bottom,top,nx,ny};
@@ -23,7 +25,7 @@ TEST(StructuredMesh2D, InvalidNumberOfNodesThrow)
     EXPECT_THROW(spatial::StructuredMesh2D(0,1,0,1,10,-10), std::invalid_argument);
 }
 
-TEST_F(StructuredMesh2DTest, ConstructsMeshFromSides) 
+TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomainSides) 
 {
     spatial::StructuredMesh2D mesh(0,1,0,1,nx,ny);
 
@@ -53,6 +55,37 @@ TEST_F(StructuredMesh2DTest, NodeCounting)
     EXPECT_EQ(mesh.getNodes().size(), mesh.getNx() * mesh.getNy());
     EXPECT_EQ(mesh.getBoundaryNodes().size(), 2 * (nx + ny) - 4);
     EXPECT_EQ(mesh.getBoundaryNodes().size() + mesh.getInnerNodes().size(), mesh.getNodes().size());
+    EXPECT_EQ(mesh.getNodeID(6, 12), 12 * nx + 6);
+}
+
+TEST_F(StructuredMesh2DTest, NodeOutOfBounds)
+{
+    EXPECT_FALSE(mesh.getNodeID(-1, 1));
+    EXPECT_FALSE(mesh.getNodeID(1, -1));
+    EXPECT_FALSE(mesh.getNodeID(nx, 1));
+    EXPECT_FALSE(mesh.getNodeID(1, ny));
+}
+
+TEST_F(StructuredMesh2DTest, CheckCorners)
+{
+    std::vector<spatial::BoundaryNode2D> t_corners = mesh.getBoundaryNodes();
+    std::unordered_set<int> corners{0, 10, 220, 230};
+    
+    for (auto node : t_corners)
+    {
+        if (node.sides_.size() == 2)
+        {
+            EXPECT_TRUE(corners.count(node.nodeID_));
+            corners.erase(node.nodeID_);
+        }
+    }
+    EXPECT_TRUE(corners.empty());
+
+    EXPECT_TRUE(mesh.isCorner(0));
+    EXPECT_TRUE(mesh.isCorner(10));
+    EXPECT_TRUE(mesh.isCorner(220));
+    EXPECT_TRUE(mesh.isCorner(230));
+    EXPECT_FALSE(mesh.isCorner(231));
 }
 
 TEST_F(StructuredMesh2DTest, MeshGeneration)
@@ -74,7 +107,7 @@ TEST_F(StructuredMesh2DTest, BoundaryNodesAssignation)
 {
     for (const auto& [side, nodes] : mesh.getBoundaries()) 
     {
-        if (side == spatial::Side::Left || side == spatial::Side::Right) EXPECT_EQ(nodes.size(), ny);
+        if (side == spatial::DomainSide::Left || side == spatial::DomainSide::Right) EXPECT_EQ(nodes.size(), ny);
         else EXPECT_EQ(nodes.size(), nx);
     }
 }
@@ -86,8 +119,8 @@ TEST_F(StructuredMesh2DTest, InnerBoundaryNodesSeparation)
         EXPECT_FALSE(mesh.isBoundary(nodeID));
     }
 
-    for (int nodeID : mesh.getBoundaryNodes()) 
+    for (auto node : mesh.getBoundaryNodes()) 
     {
-        EXPECT_TRUE(mesh.isBoundary(nodeID));
+        EXPECT_TRUE(mesh.isBoundary(node.nodeID_));
     }
 }
