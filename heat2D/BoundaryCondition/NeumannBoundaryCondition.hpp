@@ -1,12 +1,7 @@
 #ifndef NEUMANNBOUNDARYCONDITION_HPP
 #define NEUMANNBOUNDARYCONDITION_HPP
 
-#include <Eigen/Sparse>
-#include <functional>
-#include <vector>
-
 #include "BoundaryCondition.hpp"
-#include "Mesh2D.hpp"
 
 namespace spatial
 {
@@ -14,10 +9,10 @@ namespace spatial
 class NeumannBoundaryCondition : public BoundaryCondition
 {
     public: 
-        NeumannBoundaryCondition(Side side, std::function<double (double, double, double)> f) 
-        : BoundaryCondition(side, std::move(f)) {};
+        NeumannBoundaryCondition(std::function<double (double, double, double)> f) 
+        : BoundaryCondition(std::move(f)) {};
 
-        void applyBoundaryCondition(const StructuredMesh2D&, std::vector<Eigen::Triplet<double>>&) const override;
+        BoundaryConditionType getType() const override {return BoundaryConditionType::Neumann;};
 };
 
 } // namespace

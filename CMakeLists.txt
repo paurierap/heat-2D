@@ -7,6 +7,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 enable_testing()
 
+# Google Tests:
+include(FetchContent)
+FetchContent_Declare(
+  googletest
+  #URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.17.0
+)
+FetchContent_MakeAvailable(googletest)
+
+include(GoogleTest)
+
 # Try to find Eigen in the system
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
@@ -21,18 +33,6 @@ if(NOT TARGET Eigen3::Eigen)
   )
   FetchContent_MakeAvailable(eigen)
 endif()
-
-# Google Tests:
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  #URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.17.0
-)
-FetchContent_MakeAvailable(googletest)
-
-include(GoogleTest)
 
 # Add subdirectories
 add_subdirectory(tests)

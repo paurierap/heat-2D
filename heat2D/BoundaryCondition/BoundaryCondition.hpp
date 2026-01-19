@@ -1,32 +1,28 @@
 #ifndef BOUNDARYCONDITION_HPP
 #define BOUNDARYCONDITION_HPP
 
-#include <Eigen/Sparse>
 #include <functional>
 #include <vector>
-
-#include "StructuredMesh2D.hpp"
 
 namespace spatial
 {
 
+enum class BoundaryConditionType {Dirichlet, Neumann};
+
 class BoundaryCondition
 {
     protected:
-        const Side side_;
         std::function<double (double, double, double)> f_;
 
     public:
-        BoundaryCondition(Side side, std::function<double (double, double, double)> f) 
-        : side_(side), f_(std::move(f)) {}; 
+        BoundaryCondition(std::function<double (double, double, double)> f) 
+        : f_(f) {}; 
 
         virtual ~BoundaryCondition() = default;
         
-        double f(double x, double y, double t) const {return f_(x,y,t);};
+        double f(double x, double y, double t=0.0) const {return f_(x,y,t);};
 
-        inline const Side getSide() const {return side_;};
-
-        virtual void applyBoundaryCondition(const StructuredMesh2D&, std::vector<Eigen::Triplet<double>>&) const = 0;
+        virtual BoundaryConditionType getType() const = 0;
 };
 
 } // namespace

@@ -9,10 +9,10 @@ namespace spatial
 class DirichletBoundaryCondition : public BoundaryCondition
 {
     public: 
-        DirichletBoundaryCondition(Side side, std::function<double (double, double, double)> f) 
-        : BoundaryCondition(side, std::move(f)) {};
+        DirichletBoundaryCondition(std::function<double (double, double, double)> f) 
+        : BoundaryCondition(std::move(f)) {};
 
-        void applyBoundaryCondition(const StructuredMesh2D&, std::vector<Eigen::Triplet<double>>&) const override {};    
+        BoundaryConditionType getType() const override {return BoundaryConditionType::Dirichlet;};
 };
 
 } // namespace

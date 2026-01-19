@@ -33,6 +33,9 @@
 *.out
 *.app
 
+# PDF files
+*.pdf
+
 # CMake build folders
 /build/
 /CMakeFiles/
