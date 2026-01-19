@@ -4,7 +4,6 @@
 #include "Mesh2D.hpp"
 
 #include <optional>
-#include <vector>
 
 namespace spatial
 {
@@ -29,7 +28,8 @@ class StructuredMesh2D : public Mesh2D
         inline int getNy() const {return ny_;};
         inline double getDx() const {return (domain_.right_ - domain_.left_) / (nx_ - 1);};
         inline double getDy() const {return (domain_.top_ - domain_.bottom_) / (ny_ - 1);};
-        std::optional<int> getNodeID(int, int) const;
+        inline double getMeshSize() const override {return std::min(getDx(), getDy());};
+        std::optional<int> getNodeID(int i, int j) const; // from grid indices i and j
         std::optional<int> getNeighbor(int, DomainSide) const;
 
         // Specific helpers:

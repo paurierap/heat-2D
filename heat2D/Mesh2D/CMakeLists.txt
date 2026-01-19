@@ -5,13 +5,11 @@ add_library(mesh
 )
 
 # Build code
-add_executable(
-  Mesh2D_test
+add_executable(Mesh2D_test
   Mesh2D.test.cpp
 )
 
-target_link_libraries(
-  Mesh2D_test
+target_link_libraries(Mesh2D_test
   mesh
   GTest::gtest_main
 )

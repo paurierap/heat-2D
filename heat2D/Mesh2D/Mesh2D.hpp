@@ -24,6 +24,7 @@ struct Node2D
     double y_;
 };
 
+// s
 struct BoundaryNode2D : Node2D
 {
     std::vector<DomainSide> sides_;
@@ -33,14 +34,21 @@ class Mesh2D
 {
     protected:
 
-        // nodes_ contains all nodes, inner_nodes_, boundary_nodes_ and boundaries_ contain IDs
-        std::vector<Node2D> nodes_;
-        std::vector<BoundaryNode2D> boundary_nodes_;
-        std::vector<int> node_to_boundary_node;
-        std::vector<int> inner_nodes_;
-        std::unordered_map<DomainSide, std::vector<int>> boundaries_;
         Domain2D domain_;
 
+        // Contains all nodes
+        std::vector<Node2D> nodes_;
+
+        // Contains all boundary nodes
+        std::vector<BoundaryNode2D> boundary_nodes_;
+
+        // Map ID from node to boundary node (-1 if inner node)
+        std::vector<int> node_to_boundary_node;
+
+        // Contain IDs corresponding to nodes
+        std::vector<int> inner_nodes_;
+        std::unordered_map<DomainSide, std::vector<int>> boundaries_;
+        
         virtual void meshDomain() = 0;
 
     public:
@@ -70,6 +78,7 @@ class Mesh2D
         };
         const std::pair<DomainSide, DomainSide> getBoundaryNormalDirections(DomainSide) const;
         const std::pair<DomainSide, DomainSide> getBoundaryTangentialDirections(DomainSide) const;
+        virtual double getMeshSize() const = 0;
 
         // Other helpers:
         inline bool isInner(int nodeID) const {return node_to_boundary_node[nodeID] == -1;};

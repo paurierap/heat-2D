@@ -1,4 +1,5 @@
 #include "StructuredMesh2D.hpp"
+
 #include <optional>
 
 namespace spatial

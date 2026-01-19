@@ -13,18 +13,24 @@ Mesh2D::Mesh2D(double left, double right, double bottom, double top)
 Mesh2D::Mesh2D(const Domain2D& domain) 
 : Mesh2D(domain.left_, domain.right_, domain.bottom_, domain.top_) {};
 
+// First is outward direction, second is inward direction.
 const std::pair<DomainSide, DomainSide> Mesh2D::getBoundaryNormalDirections(DomainSide side) const
 {
-    // First is outward direction, second is inward direction.
     if (side == DomainSide::Left) return {DomainSide::Left, DomainSide::Right};
     if (side == DomainSide::Right) return {DomainSide::Right, DomainSide::Left};
     if (side == DomainSide::Bottom) return {DomainSide::Bottom, DomainSide::Top};
     return {DomainSide::Top, DomainSide::Bottom};
 };
 
+/*
+Clock-wise direction using the side's outward normal: first is left direction, second is right direction. That is:
+    Left -> [Bottom, Top]
+    Right -> [Top, Bottom]
+    Bottom -> [Left, Right]
+    Top -> [Right, Left]
+*/
 const std::pair<DomainSide, DomainSide> Mesh2D::getBoundaryTangentialDirections(DomainSide side) const
 {
-    // First is left direction, second is right direction.
     if (side == DomainSide::Left) return getBoundaryNormalDirections(DomainSide::Bottom);
     if (side == DomainSide::Right) return getBoundaryNormalDirections(DomainSide::Top);
     if (side == DomainSide::Bottom) return getBoundaryNormalDirections(DomainSide::Left);
