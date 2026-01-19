@@ -16,14 +16,14 @@ target_link_libraries(spatial
 )
 
 # Build code
-add_executable(
-  SpatialDiscretization2D_test
+add_executable(SpatialDiscretization2D_test
   SpatialDiscretization2D.test.cpp
 )
 
 target_include_directories(SpatialDiscretization2D_test
   PRIVATE
   ${PROJECT_SOURCE_DIR}/heat2D/Mesh2D
+  ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
 )
 
 target_link_libraries(SpatialDiscretization2D_test
