@@ -10,7 +10,7 @@ class NeumannBoundaryCondition : public BoundaryCondition
 {
     public: 
         NeumannBoundaryCondition(std::function<double (double, double, double)> f) 
-        : BoundaryCondition(std::move(f)) {};
+        : BoundaryCondition(f) {};
 
         BoundaryConditionType getType() const override {return BoundaryConditionType::Neumann;};
 };

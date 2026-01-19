@@ -10,7 +10,7 @@ class DirichletBoundaryCondition : public BoundaryCondition
 {
     public: 
         DirichletBoundaryCondition(std::function<double (double, double, double)> f) 
-        : BoundaryCondition(std::move(f)) {};
+        : BoundaryCondition(f) {};
 
         BoundaryConditionType getType() const override {return BoundaryConditionType::Dirichlet;};
 };
