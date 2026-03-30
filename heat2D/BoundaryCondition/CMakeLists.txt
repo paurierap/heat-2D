@@ -1,4 +1,4 @@
-# Build code
+# Build BoundaryCondition test
 add_executable(BoundaryCondition_test
   BoundaryCondition.test.cpp
 )

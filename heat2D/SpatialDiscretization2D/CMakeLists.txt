@@ -4,32 +4,25 @@ add_library(spatial
 )
 
 target_include_directories(spatial
-  PRIVATE
+  PUBLIC
   ${PROJECT_SOURCE_DIR}/heat2D/Mesh2D
   ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
 )
 
 target_link_libraries(spatial
-  PRIVATE
+  PUBLIC
   mesh
   Eigen3::Eigen
 )
 
-# Build code
+# Build SpatialDiscretization test
 add_executable(SpatialDiscretization2D_test
   SpatialDiscretization2D.test.cpp
 )
 
-target_include_directories(SpatialDiscretization2D_test
-  PRIVATE
-  ${PROJECT_SOURCE_DIR}/heat2D/Mesh2D
-  ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
-)
-
 target_link_libraries(SpatialDiscretization2D_test
+  PUBLIC
   spatial
-  mesh
-  Eigen3::Eigen
   GTest::gtest_main
 )
 

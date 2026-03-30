@@ -35,5 +35,5 @@ if(NOT TARGET Eigen3::Eigen)
 endif()
 
 # Add subdirectories
-add_subdirectory(tests)
 add_subdirectory(heat2D)
+add_subdirectory(tests)

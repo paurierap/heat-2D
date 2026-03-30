@@ -23,11 +23,13 @@ class SpatialDiscretization2D
     protected:
         const Mesh2D& mesh_;
         const BoundaryConditions& boundary_conditions_;
-        std::function<double (double, double, double)> source_;
+        std::function<double (double x, double y, double t)> source_;
+        double alpha_;
 
         // Sparse matrix and tripletlist for assembly
         Eigen::SparseMatrix<double> matrix_;
         std::vector<Eigen::Triplet<double>> tripletList;
+        Eigen::VectorXd b_;
 
         // Mappings for nodes in the local, reduced space (Dirichlet nodes are removed)
         std::vector<int> local_to_global_;
@@ -37,8 +39,9 @@ class SpatialDiscretization2D
         std::vector<bool> is_dirichlet_;
 
     public:
-        SpatialDiscretization2D(const Mesh2D& mesh, const BoundaryConditions& boundary_conditions, std::function<double (double, double, double)> source) 
-        : mesh_(mesh), 
+        SpatialDiscretization2D(double alpha, const Mesh2D& mesh, const BoundaryConditions& boundary_conditions, std::function<double (double, double, double)> source) 
+        : alpha_(alpha),
+        mesh_(mesh), 
         boundary_conditions_(boundary_conditions),
         source_(source),
         global_to_local_(mesh_.getNodes().size(), - 1),
@@ -55,17 +58,17 @@ class SpatialDiscretization2D
         virtual void applyLaplacian() = 0;
         
         virtual void applyBoundaryConditions() = 0;
-        virtual void applyNeumannBoundaryCondition(const BoundaryNode2D&) = 0;
-        virtual void updateBoundaryConditions(double) = 0;
-        virtual void updateDirichletBoundaryCondition(const BoundaryNode2D&, double) = 0;
-        virtual void updateNeumannBoundaryCondition(const BoundaryNode2D&, double) = 0;
-        
-        virtual void updateSource(double) = 0;
 
+        virtual void updateRHS(double t) = 0;
+
+        // Solves A u = b for steady-state problems. For time-dependent PDEs, this is unused.
         virtual Eigen::VectorXd solve() = 0;
+        virtual Eigen::VectorXd reduce(std::function<double (double, double)>) = 0;
+        virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&) = 0;
 
         // Getters
         inline const Eigen::SparseMatrix<double>& getMatrix() const {return matrix_;};
+        inline const Eigen::VectorXd& getVector() const {return b_;};
 };
 
 }; // namespace

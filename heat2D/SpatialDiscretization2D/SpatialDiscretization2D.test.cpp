@@ -43,7 +43,7 @@ TEST(FiniteDifference2D, LaplacianComponents)
     auto source = [](double, double, double){return 0.0;};
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd(mesh, bc, source);
+    spatial::FiniteDifference2D fd(1.0, mesh, bc, source);
 
     fd.discretize();
     const auto& A = fd.getMatrix();
@@ -84,9 +84,9 @@ TEST(FiniteDifference2D, LaplacianVanishes)
     std::function<double (double, double)> solution = [](double x, double y){return x * x - y * y;};
 
     // Discretize PDE
-    spatial::FiniteDifference2D fd(mesh, bc, source);
+    spatial::FiniteDifference2D fd(1.0, mesh, bc, source);
     fd.discretize();
-    fd.updateBoundaryConditions();
+    fd.updateRHS();
 
     // A: interior Laplacian matrix
     // b: boundary contribution from Dirichlet nodes
@@ -107,7 +107,8 @@ TEST(FiniteDifference2D, LaplacianVanishes)
 
 TEST(FiniteDifference2D, Laplace_DirichletBC_SinSinh_Convergence) 
 {
-    /* This test verifies the expected convergence rate (2nd-order) to solve the Laplace equation with Dirichlet BCs in all sides. 
+    /* 
+    This test verifies the expected convergence rate (2nd-order) to solve the Laplace equation with Dirichlet BCs in all sides. 
     
     For u(x,y) = sin(πx/Lx) * sinh(πy/Lx), we have -Δu = 0.
 
@@ -141,8 +142,8 @@ TEST(FiniteDifference2D, Laplace_DirichletBC_SinSinh_Convergence)
     std::function<double (double, double)> solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * y / Lx);};
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd_coarse(mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(mesh_fine, bc, source);
+    spatial::FiniteDifference2D fd_coarse(1.0, mesh_coarse, bc, source);
+    spatial::FiniteDifference2D fd_fine(1.0, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);
@@ -156,7 +157,8 @@ TEST(FiniteDifference2D, Laplace_DirichletBC_SinSinh_Convergence)
 
 TEST(FiniteDifference2D, Laplace_MixedBC_SinCosh_Convergence)
 {
-    /* This test verifies the expected convergence rate (2nd-order) to solve the Laplace equation with mixed BCs. 
+    /* 
+    This test verifies the expected convergence rate (2nd-order) to solve the Laplace equation with mixed BCs. 
     
     For u(x,y) = sin(πx/Lx) * cosh(πy/Lx), we have -Δu = 0.
 
@@ -183,15 +185,15 @@ TEST(FiniteDifference2D, Laplace_MixedBC_SinCosh_Convergence)
     bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(bottomBC);
     bc[spatial::DomainSide::Top] = std::make_unique<spatial::NeumannBoundaryCondition>(topBC);
 
-    // Source term:
+    // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Exact solution
     std::function<double (double, double)> solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx);};
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd_coarse(mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(mesh_fine, bc, source);
+    spatial::FiniteDifference2D fd_coarse(1.0, mesh_coarse, bc, source);
+    spatial::FiniteDifference2D fd_fine(1.0, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);
@@ -202,6 +204,37 @@ TEST(FiniteDifference2D, Laplace_MixedBC_SinCosh_Convergence)
     double convergence_rate = std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
     EXPECT_NEAR(convergence_rate, 2.0, 0.1);
 }
+
+TEST(FiniteDifference2D, Laplace_NullSpace)
+{
+    /* 
+    This test verifies that the Laplacian matrix with pure Neumann BCs has a constant vector in its nullspace. That is, A * ones = 0.
+    */
+    int n = 101;                  
+    double Lx = 2.0, Ly = 3.0;    
+    spatial::StructuredMesh2D mesh(0, Lx, 0, Ly, n, n);
+
+    // Define BCs
+    auto zeroNeumann = [](double, double, double){return 0.0;};
+    spatial::BoundaryConditions bc;
+    bc[spatial::DomainSide::Left] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Right] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Top] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
+
+    // Source term
+    auto source = [](double, double, double){return 0.0;};
+
+    // Discretise PDE
+    spatial::FiniteDifference2D fd(1.0, mesh, bc, source);
+    fd.discretize();
+
+    const auto& A = fd.getMatrix();
+    Eigen::VectorXd ones = Eigen::VectorXd::Constant(A.cols(), 1.0);
+
+    EXPECT_NEAR((A * ones).lpNorm<Eigen::Infinity>(), 0.0, 1e-12);
+}
+
 
 TEST(FiniteDifference2D, Poisson_MixedBC_SquareExpSin_Convergence)
 {
@@ -238,8 +271,8 @@ TEST(FiniteDifference2D, Poisson_MixedBC_SquareExpSin_Convergence)
     auto source = [&](double x, double y, double){return -(4 * x * x - 2 - M_PI * M_PI) * solution(x,y);};
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd_coarse(mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(mesh_fine, bc, source);
+    spatial::FiniteDifference2D fd_coarse(1.0, mesh_coarse, bc, source);
+    spatial::FiniteDifference2D fd_fine(1.0, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);

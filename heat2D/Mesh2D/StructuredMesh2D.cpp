@@ -1,6 +1,7 @@
 #include "StructuredMesh2D.hpp"
 
 #include <optional>
+#include <stdexcept>
 
 namespace spatial
 {
@@ -73,6 +74,14 @@ void StructuredMesh2D::meshDomain()
                 boundary_node++;
                 boundary_nodes_.push_back(BoundaryNode2D{nodeID, x, y, sides});
             }
+        }
+    }
+
+    for (int i = 0; i < nodes_.size(); ++i)
+    {
+        if (nodes_[i].nodeID_ != i)
+        {
+            throw std::logic_error("Mesh2D invariant violated: nodeID_ must match nodes_ index.");
         }
     }
 };

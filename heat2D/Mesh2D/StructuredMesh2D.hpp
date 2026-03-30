@@ -19,11 +19,11 @@ class StructuredMesh2D : public Mesh2D
 
     public:
 
-        // Constructors:
+        // Constructors
         StructuredMesh2D(double left, double right, double bottom, double top, int nx, int ny);
         StructuredMesh2D(const Domain2D& domain, int nx, int ny);
         
-        // Getters:
+        // Getters
         inline int getNx() const {return nx_;};
         inline int getNy() const {return ny_;};
         inline double getDx() const {return (domain_.right_ - domain_.left_) / (nx_ - 1);};
@@ -32,7 +32,7 @@ class StructuredMesh2D : public Mesh2D
         std::optional<int> getNodeID(int i, int j) const; // from grid indices i and j
         std::optional<int> getNeighbor(int, DomainSide) const;
 
-        // Specific helpers:
+        // Specific helpers
         bool isCorner(int) const;
 };
 

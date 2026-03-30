@@ -4,7 +4,7 @@ add_library(mesh
   StructuredMesh2D.cpp
 )
 
-# Build code
+# Build Mesh2D test
 add_executable(Mesh2D_test
   Mesh2D.test.cpp
 )
