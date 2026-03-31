@@ -1,7 +1,6 @@
 #ifndef CRANKNICOLSON_HPP
 #define CRANKNICOLSON_HPP
 
-#include <cassert>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <memory>
@@ -45,7 +44,7 @@ class CrankNicolson : public TimeIntegrator
 
         void step(spatial::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
-            assert(isInitialized_);
+            if (!isInitialized_) throw std::logic_error("\nStep function for Crank Nicolson time integration was used before SetUp.\n");
 
             sd.updateRHS(t);
             Eigen::VectorXd b = sd.getVector();
@@ -58,7 +57,7 @@ class CrankNicolson : public TimeIntegrator
             if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("CN solve failed");
         }
 
-        // Virtual factory for timestep remainder operations.
+        // Virtual factory for timestep remainder operations. Note that the clone does not transfer precomputed matrices. The caller must invoke setUp() on the clone.
         std::unique_ptr<TimeIntegrator> cloneWithTimestep(double timestep) const override
         {
             return std::make_unique<CrankNicolson>(timestep);

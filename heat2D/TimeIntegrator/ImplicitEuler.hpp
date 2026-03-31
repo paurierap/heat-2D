@@ -40,7 +40,7 @@ class ImplicitEuler : public TimeIntegrator
 
         void step(spatial::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
-            assert(isInitialized_);
+            if (!isInitialized_) throw std::logic_error("\nStep function for Implicit Euler time integration was used before SetUp.\n");
 
             sd.updateRHS(t + timestep_);
             const Eigen::VectorXd& b = sd.getVector();
@@ -48,7 +48,7 @@ class ImplicitEuler : public TimeIntegrator
             u = LUsolver_.solve(u + timestep_ * b);
         };
 
-        // Virtual factory for timestep remainder operations.
+        // Virtual factory for timestep remainder operations. Note that the clone does not transfer precomputed matrices. The caller must invoke setUp() on the clone.
         std::unique_ptr<TimeIntegrator> cloneWithTimestep(double timestep) const override
         {
             return std::make_unique<ImplicitEuler>(timestep);
