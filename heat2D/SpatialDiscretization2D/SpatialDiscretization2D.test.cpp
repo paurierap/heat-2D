@@ -12,7 +12,7 @@ double solve_and_get_error(spatial::SpatialDiscretization2D& sd, spatial::Mesh2D
 {
     sd.discretize();
 
-    Eigen::VectorXd sol = sd.solve();
+    Eigen::VectorXd sol = sd.solveSteadyState();
     Eigen::VectorXd exact(sol.size());
 
     int j = 0;

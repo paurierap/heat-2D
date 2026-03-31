@@ -235,7 +235,7 @@ void FiniteDifference2D::updateSource(double t)
 }
 
 // Solve Poisson's equation, ie du/dt = 0.
-Eigen::VectorXd FiniteDifference2D::solve()
+Eigen::VectorXd FiniteDifference2D::solveSteadyState()
 {
     Eigen::VectorXd reduced_sol_ = solve_reduced();
     return fillDirichletNodes(reduced_sol_);
@@ -301,7 +301,7 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
         if (BC->getType() == BoundaryConditionType::Neumann) hasNeumann = true;
     }
 
-    // Direct LDLt factorization (only if A is SPD)
+    // Direct LDL^T factorization (only if A is SPD)
     if (!hasNeumann)
     {
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
@@ -311,7 +311,7 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
         
         if (ldlt.info() != Eigen::Success) throw std::runtime_error("LDLT solve failed\n");
         
-        std::cout << "\nSolving with LDLT factorization was successful!\n";
+        std::cout << "\nSolving with LDL^T factorization was successful!\n";
     }
     else // Fall back to LU
     {

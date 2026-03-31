@@ -52,17 +52,13 @@ class SpatialDiscretization2D
 
         // Discretize and build matrix A and vector b
         virtual void buildMappings() = 0;
-
         virtual void discretize() = 0;
-        
         virtual void applyLaplacian() = 0;
-        
         virtual void applyBoundaryConditions() = 0;
-
         virtual void updateRHS(double t) = 0;
 
-        // Solves A u = b for steady-state problems. For time-dependent PDEs, this is unused.
-        virtual Eigen::VectorXd solve() = 0;
+        // Solves Au = b for steady-state problems. For time-dependent PDEs, this is unused.
+        virtual Eigen::VectorXd solveSteadyState() = 0;
         virtual Eigen::VectorXd reduce(std::function<double (double, double)>) = 0;
         virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&) = 0;
 
