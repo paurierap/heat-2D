@@ -22,7 +22,7 @@ class SpatialDiscretization2D
 {
     protected:
         const Mesh2D& mesh_;
-        const BoundaryConditions& boundary_conditions_;
+        BoundaryConditions boundary_conditions_;
         std::function<double (double x, double y, double t)> source_;
         double alpha_;
 
@@ -39,7 +39,7 @@ class SpatialDiscretization2D
         std::vector<bool> is_dirichlet_;
 
     public:
-        SpatialDiscretization2D(double alpha, const Mesh2D& mesh, const BoundaryConditions& boundary_conditions, std::function<double (double, double, double)> source) 
+        SpatialDiscretization2D(double alpha, const Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
         : alpha_(alpha),
         mesh_(mesh), 
         boundary_conditions_(boundary_conditions),
