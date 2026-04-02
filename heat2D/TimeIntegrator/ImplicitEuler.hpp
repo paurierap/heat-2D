@@ -4,6 +4,7 @@
 #include <cassert>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <iostream>
 #include <memory>
 
 #include "TimeIntegrator.hpp"
@@ -33,7 +34,7 @@ class ImplicitEuler : public TimeIntegrator
 
             LUsolver_.compute(M_lhs_);
 
-            if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("LU factorization for Crank Nicolson LHS failed\n");
+            if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("LU factorization for Implicit Euler failed\n");
 
             isInitialized_ = true;
         }
@@ -45,7 +46,11 @@ class ImplicitEuler : public TimeIntegrator
             sd.updateRHS(t + timestep_);
             const Eigen::VectorXd& b = sd.getVector();
 
-            u = LUsolver_.solve(u + timestep_ * b);
+            // Create temporary to avoid aliasing
+            Eigen::VectorXd tmp = u + timestep_ * b;
+            u = LUsolver_.solve(tmp);
+
+            if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("IE solve failed\n");
         };
 
         // Virtual factory for timestep remainder operations. Note that the clone does not transfer precomputed matrices. The caller must invoke setUp() on the clone.
