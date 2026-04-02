@@ -15,7 +15,6 @@ namespace spatial
 class FiniteDifference2D: public SpatialDiscretization2D
 {
     private: 
-
         // Structured mesh required for finite differences
         const StructuredMesh2D& mesh_;
 

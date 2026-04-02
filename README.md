@@ -35,3 +35,4 @@ ctest --verbose
 
 1. UnstructuredMesh2D and the implementation of FEM.
 2. Study change from reference to mesh in SpatialDiscretization to using a shared_ptr.
+3. Consider removing mesh_ from SpatialDiscretization base class

@@ -52,6 +52,7 @@ class CrankNicolson : public TimeIntegrator
             sd.updateRHS(t + timestep_);
             b += sd.getVector();
 
+            // No aliasing since M_rhs_ * u creates a new temporary vector
             u = LUsolver_.solve(M_rhs_ * u + 0.5 * timestep_ * b);
 
             if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("CN solve failed");

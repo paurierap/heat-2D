@@ -11,7 +11,7 @@
 namespace spatial
 {
 
-FiniteDifference2D::FiniteDifference2D(double alpha, const StructuredMesh2D& mesh, const BoundaryConditions& boundary_conditions, std::function<double (double, double, double)> source)
+FiniteDifference2D::FiniteDifference2D(double alpha, const StructuredMesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source)
 : SpatialDiscretization2D(alpha, mesh, boundary_conditions, source), mesh_(mesh)
 {
 
@@ -124,7 +124,7 @@ void FiniteDifference2D::applyBoundaryConditions()
 {
     // A boundary node can have 1 or 2 (corners) sides. If it belongs to a side with a Dirichlet BC, the node (and its row in A) is omitted. If it's a corner, a Dirichlet BC has preference over Neumann. If Neumann-Neumann, BCs are treated naturally.
     const std::vector<BoundaryNode2D>& boundary_nodes = mesh_.getBoundaryNodes();
-    for (const auto& boundary_node : mesh_.getBoundaryNodes())  
+    for (const auto& boundary_node : boundary_nodes)  
     {
         if (is_dirichlet_[boundary_node.nodeID_]) continue;
         applyNeumannBoundaryCondition(boundary_node);
@@ -186,7 +186,6 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const BoundaryNode2D& 
     int globalID = boundary_node.nodeID_;
     double x = boundary_node.x_;
     double y = boundary_node.y_;
-    double h;
 
     for (auto side : boundary_node.sides_)
     {
@@ -251,7 +250,7 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
     {
         int globalID = nodes[i].nodeID_;
 
-        if (!is_dirichlet_[globalID]) solution[globalID] = reduced_solution[global_to_local_[i]];
+        if (!is_dirichlet_[globalID]) solution[globalID] = reduced_solution[global_to_local_[globalID]];
     }
     
     for (const auto& [side, BC] : boundary_conditions_)
@@ -295,11 +294,9 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
     // Populate b_
     updateRHS();
 
-    bool hasNeumann = false;
-    for (const auto& [side, BC] : boundary_conditions_)
-    {
-        if (BC->getType() == BoundaryConditionType::Neumann) hasNeumann = true;
-    }
+    // Check if there are any Neumann BCs
+    bool hasNeumann = std::any_of(boundary_conditions_.begin(), boundary_conditions_.end(),
+    [](const auto& pair){return pair.second->getType() == BoundaryConditionType::Neumann;});
 
     // Direct LDL^T factorization (only if A is SPD)
     if (!hasNeumann)

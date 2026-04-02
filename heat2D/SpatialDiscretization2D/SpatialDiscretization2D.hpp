@@ -6,7 +6,6 @@
 #include <functional>
 #include <memory>
 #include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 #include "BoundaryCondition.hpp"
@@ -15,15 +14,17 @@
 namespace spatial
 {
 
-// Unique pointer required for run-time polymorphism
-using BoundaryConditions = std::unordered_map<DomainSide, std::unique_ptr<BoundaryCondition>>;
+// Pointer required for run-time polymorphism and to be used in different instances of the class
+using BoundaryConditions = std::unordered_map<DomainSide, std::shared_ptr<BoundaryCondition>>;
 
 class SpatialDiscretization2D
 {
-    protected:
+    private: 
         const Mesh2D& mesh_;
+
+    protected:
         BoundaryConditions boundary_conditions_;
-        std::function<double (double x, double y, double t)> source_;
+        std::function<double (double, double, double)> source_;
         double alpha_;
 
         // Sparse matrix and tripletlist for assembly

@@ -2,7 +2,6 @@
 #define TIMEINTEGRATOR_HPP
 
 #include <Eigen/Dense>
-#include <Eigen/Sparse>
 #include <memory>
 #include <stdexcept>
 
