@@ -26,19 +26,21 @@ void HeatPDE2D::integrate(double t_end)
 
     const double dt = time_integrator_.getTimestep();
     const int n_steps = static_cast<int>(std::floor((t_end - t_start_) / dt));
-    double t = t_start_;
+    int step_count = 0;
 
-    while (t < t_end) 
+    while (step_count < n_steps) 
     {
-        time_integrator_.step(spatial_discretization_, t, u_end_);
-        t += dt;
+        time_integrator_.step(spatial_discretization_, t_start_ + step_count * dt, u_end_);
+        step_count++;
     }
 
-    const double remainder = t_end - t;
-    if (remainder > 0.0)
+    const double remainder = t_end - (t_start_ + dt * n_steps);
+    if (remainder > 1e-10 * dt)
     {
         std::unique_ptr<temporal::TimeIntegrator> tail = time_integrator_.cloneWithTimestep(remainder);
         tail->setUp(spatial_discretization_);
-        tail->step(spatial_discretization_, t, u_end_);
+        tail->step(spatial_discretization_, t_start_ + dt * n_steps, u_end_);
     }
+
+    t_start_ = t_end;
 }
