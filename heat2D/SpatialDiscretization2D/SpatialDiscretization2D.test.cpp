@@ -1,5 +1,4 @@
 #include <cmath>
-#include <Eigen/Eigenvalues>
 #include <functional>
 #include <gtest/gtest.h>
 
@@ -8,6 +7,7 @@
 #include "FiniteDifference2D.hpp"
 #include "StructuredMesh2D.hpp"
 
+// Auxiliary function that compares approximation with exact solution
 double solve_and_get_error(spatial::SpatialDiscretization2D& sd, spatial::Mesh2D& mesh, std::function<double (double, double)> solution)
 {
     sd.discretize();
@@ -18,8 +18,7 @@ double solve_and_get_error(spatial::SpatialDiscretization2D& sd, spatial::Mesh2D
     int j = 0;
     for (const auto& node : mesh.getNodes()) exact[j++] = solution(node.x_, node.y_);
 
-    Eigen::VectorXd residual = exact - sol;
-    return residual.lpNorm<Eigen::Infinity>();
+    return (exact - sol).lpNorm<Eigen::Infinity>();
 };
 
 TEST(FiniteDifference2D, LaplacianComponents) 
@@ -31,13 +30,12 @@ TEST(FiniteDifference2D, LaplacianComponents)
 
     // Boundary Conditions
     spatial::BoundaryConditions bc;
-    std::function<double (double, double, double)> f = [](double x, double y, double t)
-    {return 0;};
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::DirichletBoundaryCondition>(f);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::DirichletBoundaryCondition>(f);
+    auto zeroBC = [](double, double, double){return 0.0;};
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
     bc[spatial::DomainSide::Top] = 
-    std::make_unique<spatial::DirichletBoundaryCondition>(f);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(f);
+    std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
@@ -66,22 +64,22 @@ TEST(FiniteDifference2D, LaplacianVanishes)
     spatial::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
     
     // Define BCs
-    std::function<double (double, double, double)> leftBC = [](double x, double y, double t){return - y * y;};
-    std::function<double (double, double, double)> rightBC = [](double x, double y, double t){return 1 - y * y;};
-    std::function<double (double, double, double)> bottomBC = [](double x, double y, double t){return x * x;};
-    std::function<double (double, double, double)> topBC = [](double x, double y, double t){return x * x - 1;};
+    auto leftBC = [](double x, double y, double t){return - y * y;};
+    auto rightBC = [](double x, double y, double t){return 1 - y * y;};
+    auto bottomBC = [](double x, double y, double t){return x * x;};
+    auto topBC = [](double x, double y, double t){return x * x - 1;};
 
     spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::DirichletBoundaryCondition>(leftBC);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::DirichletBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_unique<spatial::DirichletBoundaryCondition>(topBC);
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(leftBC);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(rightBC);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
+    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(topBC);
     
     // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Exact harmonic solution (quadratic => exact for 2nd-order FD)
-    std::function<double (double, double)> solution = [](double x, double y){return x * x - y * y;};
+    auto solution = [](double x, double y){return x * x - y * y;};
 
     // Discretize PDE
     spatial::FiniteDifference2D fd(1.0, mesh, bc, source);
@@ -124,22 +122,22 @@ TEST(FiniteDifference2D, Laplace_DirichletBC_SinSinh_Convergence)
     spatial::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
 
     // Define BCs
-    std::function<double (double, double, double)> leftBC = [](double x, double y, double t){return 0;};
-    std::function<double (double, double, double)> rightBC = [](double x, double y, double t){return 0;};
-    std::function<double (double, double, double)> bottomBC = [](double x, double y, double t){return 0;};
-    std::function<double (double, double, double)> topBC = [&](double x, double y, double t){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);};
+    auto leftBC = [](double x, double y, double t){return 0;};
+    auto rightBC = [](double x, double y, double t){return 0;};
+    auto bottomBC = [](double x, double y, double t){return 0;};
+    auto topBC = [&](double x, double y, double t){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);};
 
     spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::DirichletBoundaryCondition>(leftBC);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::DirichletBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_unique<spatial::DirichletBoundaryCondition>(topBC);
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(leftBC);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(rightBC);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
+    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(topBC);
     
     // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Exact solution
-    std::function<double (double, double)> solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * y / Lx);};
+    auto solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * y / Lx);};
 
     // Discretise PDE
     spatial::FiniteDifference2D fd_coarse(1.0, mesh_coarse, bc, source);
@@ -180,16 +178,16 @@ TEST(FiniteDifference2D, Laplace_MixedBC_SinCosh_Convergence)
     auto topBC = [&](double x, double, double){return M_PI / Lx * std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);};
 
     spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::DirichletBoundaryCondition>(leftBC);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::DirichletBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_unique<spatial::NeumannBoundaryCondition>(topBC);
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(leftBC);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(rightBC);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
+    bc[spatial::DomainSide::Top] = std::make_shared<spatial::NeumannBoundaryCondition>(topBC);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Exact solution
-    std::function<double (double, double)> solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx);};
+    auto solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx);};
 
     // Discretise PDE
     spatial::FiniteDifference2D fd_coarse(1.0, mesh_coarse, bc, source);
@@ -217,10 +215,10 @@ TEST(FiniteDifference2D, Laplace_NullSpace)
     // Define BCs
     auto zeroNeumann = [](double, double, double){return 0.0;};
     spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
-    bc[spatial::DomainSide::Top] = std::make_unique<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroNeumann);
+    bc[spatial::DomainSide::Top] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroNeumann);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
@@ -259,13 +257,13 @@ TEST(FiniteDifference2D, Poisson_MixedBC_SquareExpSin_Convergence)
     auto topBC = [](double, double, double){return 0.0;};
 
     spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_unique<spatial::NeumannBoundaryCondition>(leftBC);
-    bc[spatial::DomainSide::Right] = std::make_unique<spatial::NeumannBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_unique<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_unique<spatial::DirichletBoundaryCondition>(topBC);
+    bc[spatial::DomainSide::Left] = std::make_shared<spatial::NeumannBoundaryCondition>(leftBC);
+    bc[spatial::DomainSide::Right] = std::make_shared<spatial::NeumannBoundaryCondition>(rightBC);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
+    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(topBC);
 
     // Exact solution
-    std::function<double (double, double)> solution = [](double x, double y){return std::exp(- x * x) * std::sin(M_PI * y);};
+    auto solution = [](double x, double y){return std::exp(- x * x) * std::sin(M_PI * y);};
 
     // Source term:
     auto source = [&](double x, double y, double){return -(4 * x * x - 2 - M_PI * M_PI) * solution(x,y);};
