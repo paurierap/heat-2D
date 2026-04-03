@@ -112,6 +112,9 @@ std::optional<int> StructuredMesh2D::getNeighbor(int nodeID, DomainSide side) co
         case DomainSide::Top:
             if ((nodeID + nx_) > nx_ * ny_ - 1) return std::nullopt;
             return nodeID + nx_;
+
+        default:
+            return std::nullopt;
     }    
 };
 
