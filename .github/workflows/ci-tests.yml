@@ -11,7 +11,7 @@ jobs:
         shell: bash
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4.2.2
 
     - name: Install dependencies
       run: sudo apt-get update && sudo apt-get install -y libeigen3-dev
@@ -31,7 +31,7 @@ jobs:
       run: ctest -V --output-on-failure --output-junit test-results/results.xml
 
     - name: Upload test results
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4.6.2
       if: always()
       with:
         name: test_results_xml

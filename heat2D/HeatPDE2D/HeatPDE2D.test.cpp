@@ -85,8 +85,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ExplicitEuler)
 
     The Explicit Euler scheme has 1st order convergence.
     */
-    int n = 21;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 21;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
     spatial::FiniteDifference2D EEfd_coarse(alpha, mesh, bc, source);
@@ -120,8 +120,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ImplicitEuler)
 
     The Implicit Euler scheme has 1st order convergence.
     */
-    int n = 151;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 151;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
     
     // Discretise PDE
     spatial::FiniteDifference2D IEfd_coarse(alpha, mesh, bc, source);
@@ -152,8 +152,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, CrankNicolson)
 
     The Crank-Nicolson scheme has 2nd order convergence.
     */
-    int n = 151;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 151;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
     spatial::FiniteDifference2D CNfd_coarse(alpha, mesh, bc, source);
@@ -190,9 +190,9 @@ TEST(HeatPDE2D, TwoModeDecay_Dirichlet_CrankNicolson)
 
     With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 1e-4 + 4e-4 ≈ 5e-4
     */
-    int n = 101;
+    constexpr int n = 101;
     double alpha = 0.5 / (M_PI * M_PI);
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){return 0.0;};
@@ -245,8 +245,8 @@ TEST(HeatPDE2D, ManufacturedSolution_WithSource_Dirichlet)
 
     With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 1e-4 + 4e-4 ≈ 5e-4
     */
-    int n = 101;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 101;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto dirichletBC = [](double, double, double){return 0;};
@@ -286,8 +286,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, IntegrateInStages)
     /* 
     This test verifies that the solver can integrate in different stages. In this case, it tests whether the solution is the same if integrated from t = t_start to t = t_end (one stage), or integrated in two stages, from t_start to (t_end + t_start) * 0.5 and from t_end / 2 to t_end.
     */
-    int n = 51;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 51;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
     spatial::FiniteDifference2D fd_staged(alpha, mesh, bc, source);
@@ -316,8 +316,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, InvalidTendThrows)
     /*
     This test verifies that the solver throws if t_end <= t_start.
     */
-    int n = 51;
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    constexpr int n = 51;
+    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
