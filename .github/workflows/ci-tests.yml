@@ -28,7 +28,7 @@ jobs:
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest -V --output-on-failure -output-junit test-results/results.xml
+      run: ctest -V --output-on-failure --output-junit test-results/results.xml
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
