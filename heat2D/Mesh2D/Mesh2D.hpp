@@ -2,6 +2,7 @@
 #define MESH_HPP
 
 #include <map>
+#include <stdexcept>
 #include <vector>
 
 namespace spatial
