@@ -4,6 +4,11 @@ add_library(mesh
   StructuredMesh2D.cpp
 )
 
+target_include_directories(mesh
+  PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 # Build Mesh2D test
 add_executable(Mesh2D_test
   Mesh2D.test.cpp

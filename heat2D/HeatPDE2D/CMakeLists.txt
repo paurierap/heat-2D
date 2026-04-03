@@ -1,17 +1,17 @@
-# Make library:
-add_library(HeatPDE
-  HeatPDE2D.cpp
-)
+# Add header-only library
+add_library(HeatPDE INTERFACE)
 
-target_include_directories(HeatPDE
-  PUBLIC
-  ${PROJECT_SOURCE_DIR}/heat2D/SpatialDiscretization2D
+target_include_directories(HeatPDE 
+  INTERFACE 
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/heat2D/TimeIntegrator
+  ${PROJECT_SOURCE_DIR}/heat2D/SolutionWriter
 )
 
-target_link_libraries(HeatPDE
-  PUBLIC
-  spatial
+target_link_libraries(HeatPDE 
+  INTERFACE 
+  spatial 
+  temporal
 )
 
 # Build HeatPDE test

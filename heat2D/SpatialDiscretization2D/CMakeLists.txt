@@ -5,7 +5,7 @@ add_library(spatial
 
 target_include_directories(spatial
   PUBLIC
-  ${PROJECT_SOURCE_DIR}/heat2D/Mesh2D
+  ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
 )
 

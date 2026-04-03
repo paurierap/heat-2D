@@ -36,4 +36,4 @@ endif()
 
 # Add subdirectories
 add_subdirectory(heat2D)
-add_subdirectory(tests)
+add_subdirectory(examples)
