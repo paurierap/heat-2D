@@ -21,15 +21,18 @@ jobs:
 
     - name: Build
       working-directory: ${{runner.workspace}}/build
-      run: cmake --build .
+      run: cmake --build . --parallel
+
+    - name: Create test results directory
+      run: mkdir -p ${{runner.workspace}}/build/test-results
 
     - name: Test
       working-directory: ${{runner.workspace}}/build
-      run: ctest -V --output-on-failure --test-output-dir test-results/
+      run: ctest -V --output-on-failure -output-junit test-results/results.xml
 
     - name: Upload test results
       uses: actions/upload-artifact@v4
-      if: failure()
+      if: always()
       with:
         name: test_results_xml
-        path: ${{runner.workspace}}/build/test-results/**/*.xml
+        path: ${{runner.workspace}}/build/test-results/results.xml
