@@ -237,18 +237,18 @@ void FiniteDifference2D::updateSource(double t)
 Eigen::VectorXd FiniteDifference2D::solveSteadyState()
 {
     Eigen::VectorXd reduced_sol_ = solve_reduced();
-    return fillDirichletNodes(reduced_sol_);
+    return fillDirichletNodes(reduced_sol_, 0.0);
 }
 
-Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>& reduced_solution)
+Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>& reduced_solution, double t) const
 {
     Eigen::VectorXd solution(mesh_.getNodes().size());
 
     // Fill solution with Dirichlet nodes
     const std::vector<Node2D>& nodes = mesh_.getNodes();
-    for (int i = 0; i < nodes.size(); ++i)
+    for (const auto& node : nodes)
     {
-        int globalID = nodes[i].nodeID_;
+        int globalID = node.nodeID_;
 
         if (!is_dirichlet_[globalID]) solution[globalID] = reduced_solution[global_to_local_[globalID]];
     }
@@ -263,7 +263,7 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
                 double x = boundary_node.x_;
                 double y = boundary_node.y_;
 
-                solution[globalID] = boundary_conditions_.at(side)->f(x,y); 
+                solution[globalID] = boundary_conditions_.at(side)->f(x,y,t); 
             }
         }
     }

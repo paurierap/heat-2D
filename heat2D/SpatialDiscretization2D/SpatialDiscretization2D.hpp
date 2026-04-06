@@ -61,7 +61,7 @@ class SpatialDiscretization2D
         // Solves Au = b for steady-state problems. For time-dependent PDEs, this is unused.
         virtual Eigen::VectorXd solveSteadyState() = 0;
         virtual Eigen::VectorXd reduce(std::function<double (double, double)>) = 0;
-        virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&) = 0;
+        virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&, double) const = 0;
 
         // Getters
         inline const Eigen::SparseMatrix<double>& getMatrix() const {return matrix_;};

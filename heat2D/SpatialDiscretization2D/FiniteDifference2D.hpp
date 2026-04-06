@@ -41,7 +41,7 @@ class FiniteDifference2D: public SpatialDiscretization2D
 
         Eigen::VectorXd solveSteadyState() override;
         Eigen::VectorXd reduce(std::function<double (double, double)>) override;
-        Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&) override;
+        Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&, double) const override;
         Eigen::VectorXd solve_reduced();
 };
 
