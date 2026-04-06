@@ -32,12 +32,10 @@ class SolutionWriter
         void write(const spatial::Mesh2D& mesh, const Eigen::VectorXd& solution,  double t)
         {
             std::vector<spatial::Node2D> nodes = mesh.getNodes();
-            
-            int i = 0;
+
             for(const auto& node : nodes)
             {
-                filename_ << node.x_ << "," << node.y_ << "," << solution[i] << "," << t << "\n";
-                ++i;
+                filename_ << node.x_ << "," << node.y_ << "," << solution[node.nodeID_] << "," << t << "\n";
             }
         }
 };
