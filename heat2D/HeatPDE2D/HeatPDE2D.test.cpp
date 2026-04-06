@@ -13,14 +13,23 @@
 #include "ImplicitEuler.hpp"
 #include "CrankNicolson.hpp"
 
-// Auxiliary function that solves heat equation and returns the solution as a vectorised Eigen::VectorXd
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+// =============================================================================
+// Helper: solves the heat equation and returns the solution as a vectorised 
+//         Eigen::VectorXd
+// =============================================================================
 Eigen::VectorXd solve_and_get_solution(HeatPDE2D& solver, double t_end)
 {
     solver.integrate(t_end);
     return solver.getSolution();
 }
 
-// Auxiliary function that compares approximation with exact solution
+// =============================================================================
+// Helper: compares approximation with exact solution
+// =============================================================================
 double solve_and_get_error(HeatPDE2D& solver, const spatial::Mesh2D& mesh, std::function<double (double, double, double)> solution, double t_end)
 {
     Eigen::VectorXd sol = solve_and_get_solution(solver, t_end);
@@ -32,24 +41,30 @@ double solve_and_get_error(HeatPDE2D& solver, const spatial::Mesh2D& mesh, std::
     return (sol - exact).lpNorm<Eigen::Infinity>();
 }
 
-// Auxiliary function that compares approximation with reference approximation (with refined discretization)
+// =============================================================================
+// Helper: compares approximation with reference approximation (with a refined 
+//         discretization)
+// =============================================================================
 double solve_and_get_error_vs_ref(HeatPDE2D& solver, const Eigen::Ref<const Eigen::VectorXd>& ref, double t_end)
 {
     Eigen::VectorXd sol = solve_and_get_solution(solver, t_end);
     return (sol - ref).lpNorm<Eigen::Infinity>();
 }
 
-class TimeConvergence_Single_Eigenmode_Dirichlet : public testing::Test
+// =============================================================================
+// Fixture - Used to verify the expected convergence rates of Explicit Euler, 
+//           Implicit Euler and Crank-Nicolson for the heat equation with 
+//           Dirichlet BCs in all sides. 
+//
+// For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy), ∂u/∂t = αΔu. Imposing 
+// Dirichlet BCs at all sides leads to u_left = u_right = u_bottom = u_top = 0, 
+// and the initial condition u0 = u(x,y,0) = sin(πx) * sin(πy).
+//
+// The solution is approximated from t = 0 to t = 0.1/α. The parameter α is free
+// but t_end and dt need to be scaled with it.
+// =============================================================================
+class DirichletBCTimeConvergence : public testing::Test
 {
-    /* 
-    This class is used to verify the expected convergence rates of Explicit Euler, Implicit Euler and Crank-Nicolson for the heat equation with Dirichlet BCs in all sides. 
-    
-    For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy), we have  ∂u/∂t = αΔu.
-
-    We can impose Dirichlet BCs at all sides where u_left = u_right = u_bottom =  u_top = 0, and the initial condition u0 = u(x,y,0) = sin(πx) * sin(πy).
-
-    The solution is approximated from t = 0 to t = 0.1/α. The parameter α is free, but t_end and dt need to be scaled with it.
-    */
     protected: 
         static constexpr double alpha = 0.5 / (M_PI * M_PI);
         static constexpr double t_start = 0.0;
@@ -76,15 +91,19 @@ class TimeConvergence_Single_Eigenmode_Dirichlet : public testing::Test
         }
 };
 
-TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ExplicitEuler)
+// =============================================================================
+// Test 1: Explicit Euler (1st order convergence)
+// 
+// The parameters are chosen to ensure stability. Numerical stability is ensured 
+// if dt < dx²/(4α). Therefore, dt_coarse = 2e-4 < 6.25e-4 = (1/20)²/4.
+//
+// As opposed to comparing against an analytical solution, the approximation is 
+// compared against another approximation with the same spatial discretization, 
+// but employing Crank Nicolson time integration. This ensures that spatial 
+// errors cancel out.
+// =============================================================================
+TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
 {
-    /* 
-    The parameters are chosen to ensure stability. Numerical stability is ensured if dt < dx²/(4α). Therefore, dt_coarse = 2e-4 < 6.25e-4 = (1/20)²/4.
-
-    As opposed to comparing against an analytical solution, the approximation is compared against another approximation with the same spatial discretization, but employing Crank Nicolson time integration. This ensures that spatial errors cancel out.
-
-    The Explicit Euler scheme has 1st order convergence.
-    */
     constexpr int n = 21;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
@@ -94,8 +113,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ExplicitEuler)
     spatial::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
 
     // Time integrators
-    double dt_coarse = 0.0002 / alpha;
-    double dt_fine = 0.0001 / alpha;
+    constexpr double dt_coarse = 0.0002 / alpha;
+    constexpr double dt_fine = 0.0001 / alpha;
     temporal::ExplicitEuler EEti_coarse(dt_coarse), EEti_fine(dt_fine);
     temporal::CrankNicolson CNti_ref(1e-4);
 
@@ -113,13 +132,15 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ExplicitEuler)
     EXPECT_NEAR(EE_rate, 1, 0.1);
 }
 
-TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ImplicitEuler)
+// =============================================================================
+// Test 2: Implicit Euler (1st order convergence)
+// 
+// The parameters are chosen to ensure time integration error dominates over 
+// spatial discretisation error. Provided that error(space) = O(dx²) ≈ 4.4e-5, 
+// error(time) = O(dt) ≈ 5e-3.
+// =============================================================================
+TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
 {
-    /* 
-    The parameters are chosen to ensure time integration error dominates over spatial discretisation error. Provided that error(space) = O(dx²) ≈ 4.4e-5, error(time) = O(dt) ≈ 5e-3.
-
-    The Implicit Euler scheme has 1st order convergence.
-    */
     constexpr int n = 151;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
     
@@ -128,8 +149,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ImplicitEuler)
     spatial::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
-    double dt_coarse = 0.01 / alpha;
-    double dt_fine = 0.005 / alpha;
+    constexpr double dt_coarse = 0.01 / alpha;
+    constexpr double dt_fine = 0.005 / alpha;
     temporal::ImplicitEuler IEti_coarse(dt_coarse), IEti_fine(dt_fine);
 
     // Create solver object
@@ -145,13 +166,15 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, ImplicitEuler)
     EXPECT_NEAR(IE_rate, 1, 0.1) << "IE_err_coarse: " << IE_err_coarse << "\nIE_err_fine: " << IE_err_fine << "\n";
 }
 
-TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, CrankNicolson)
+// =============================================================================
+// Test 3: Crank Nicolson (2nd order convergence)
+// 
+// The parameters are chosen to ensure time integration error dominates over 
+// spatial discretisation error. Provided that error(space) = O(dx²) ≈ 4.4e-5, 
+// error(time) = O(dt²) ≈ 1e-4.
+// =============================================================================
+TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 {
-    /* 
-    The parameters are chosen to ensure time integration error dominates over spatial discretisation error. Provided that error(space) = O(dx²) ≈ 4.4e-5, error(time) = O(dt²) ≈ 1e-4.
-
-    The Crank-Nicolson scheme has 2nd order convergence.
-    */
     constexpr int n = 151;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
@@ -160,8 +183,8 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, CrankNicolson)
     spatial::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
-    double dt_coarse = 0.02 / alpha;
-    double dt_fine = 0.01 / alpha;
+    constexpr double dt_coarse = 0.02 / alpha;
+    constexpr double dt_fine = 0.01 / alpha;
     temporal::CrankNicolson CNti_coarse(dt_coarse), CNti_fine(dt_fine);
 
     // Create solver object
@@ -177,21 +200,22 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, CrankNicolson)
     EXPECT_NEAR(CN_rate, 2, 0.1) << "CN_err_coarse: " << CN_err_coarse << "\nCN_err_fine: " << CN_err_fine << "\n";
 }
 
-TEST(HeatPDE2D, TwoModeDecay_Dirichlet_CrankNicolson)
+// =============================================================================
+// Test 4 - Verify that Crank Nicolson has the expected residual error.
+//
+// For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy) + 1/2 * exp(-5π²αt) * sin(2πx) 
+// * sin(πy), ∂u/∂t = αΔu.  Imposing Dirichlet BCs at all sides leads to u_left 
+// = u_right = u_bottom = u_top = 0, and the initial condition u0 = u(x,y,0) = 
+// = sin(πx) * sin(πy) + 1/2 * sin(2πx) * sin(πy) is used.
+//
+// The solution is approximated from t = 0 to t = 0.1/α. 
+//
+// With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 5e-4 < 1e-3.
+// =============================================================================
+TEST(HeatPDE2D, CrankNicolsonExpectedError)
 {
-    /* 
-    This test verifies that Crank Nicolson has the expected residual error.
-    
-    For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy) + 1/2 * exp(-5π²αt) * sin(2πx) * sin(πy), we have  ∂u/∂t = αΔu. 
-    
-    Dirichlet BCs at all sides are imposed, where u_left = u_right = u_bottom =  u_top = 0, and the initial condition u0 = u(x,y,0) = sin(πx) * sin(πy) + 1/2 * sin(2πx) * sin(πy) is used.
-
-    The solution is approximated from t = 0 to t = 0.1/α. 
-
-    With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 1e-4 + 4e-4 ≈ 5e-4
-    */
     constexpr int n = 101;
-    double alpha = 0.5 / (M_PI * M_PI);
+    constexpr double alpha = 0.5 / (M_PI * M_PI);
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
@@ -219,32 +243,34 @@ TEST(HeatPDE2D, TwoModeDecay_Dirichlet_CrankNicolson)
     // Discretise PDE
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
-    // Time integrator, using Crank Nicolson
-    temporal::CrankNicolson ti(0.001 / alpha);
+    // Time integrator
+    constexpr double dt = 0.001 / alpha;
+    temporal::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, 0.0, u0);
 
     // Solve and get residual error
-    double t_end = 0.1 / alpha;
+    constexpr double t_end = 0.1 / alpha;
     double res_err = solve_and_get_error(solver, mesh, exact, t_end);
 
     EXPECT_LT(res_err, 1e-3);
 }
 
-TEST(HeatPDE2D, ManufacturedSolution_WithSource_Dirichlet)
+// =============================================================================
+// Test 5 - Verify that source terms are treated correctly.
+//
+// For u(x,y,t) = exp(-t) * sin(πx) * sin(πy), we have ∂u/∂t = Δu + f, with 
+// f(x,y,t) = (-1 + 2π²) * u(x,y,t).  Imposing Dirichlet BCs at all sides leads 
+// to u_left = u_right = u_bottom = u_top = 0, and the initial condition u0 = 
+// = u(x,y,0) = sin(πx) * sin(πy) is used.
+//
+// The solution is approximated from t = 0 to t = 0.1. 
+//
+// With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 5e-4 < 1e-3.
+// =============================================================================
+TEST(HeatPDE2D, CrankNicolsonWithSource)
 {
-    /* 
-    This test verifies that source terms are treated correctly.
-    
-    For u(x,y,t) = exp(-t) * sin(πx) * sin(πy), we have ∂u/∂t = Δu + f, with f(x,y,t) = (-1 + 2π²) * u(x,y,t).
-    
-    Dirichlet BCs at all sides are imposed, where u_left = u_right = u_bottom =  u_top = 0, and the initial condition u0 = u(x,y,0) = sin(πx) * sin(πy) is used.
-
-    The solution is approximated from t = 0 to t = 0.1. 
-
-    With the choice of parameters, O(error) ≈ O(dx²) + O(dt²) ≈ 1e-4 + 4e-4 ≈ 5e-4
-    */
     constexpr int n = 101;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
@@ -266,10 +292,12 @@ TEST(HeatPDE2D, ManufacturedSolution_WithSource_Dirichlet)
     auto u0 = [exact](double x, double y){return exact(x, y, 0.0);};
 
     // Discretize PDE
-    spatial::FiniteDifference2D fd(1.0, mesh, bc, source);
+    constexpr double alpha = 1.0;
+    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
     
     // Time integrator
-    temporal::CrankNicolson ti(0.01);
+    constexpr double dt = 0.01;
+    temporal::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, 0.0, u0);
@@ -281,11 +309,15 @@ TEST(HeatPDE2D, ManufacturedSolution_WithSource_Dirichlet)
     EXPECT_LT(res_err, 1e-3);
 }
 
-TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, IntegrateInStages)
+// =============================================================================
+// Test 6 - Verify that the solver can integrate in different stages.
+//
+// Testing whether the solution is the same if integrated from t = t_start to 
+// t = t_end (one stage), or integrated in two stages, from t_start to 
+// (t_end + t_start) * 0.5 and from t_end / 2 to t_end.
+// =============================================================================
+TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
 {
-    /* 
-    This test verifies that the solver can integrate in different stages. In this case, it tests whether the solution is the same if integrated from t = t_start to t = t_end (one stage), or integrated in two stages, from t_start to (t_end + t_start) * 0.5 and from t_end / 2 to t_end.
-    */
     constexpr int n = 51;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
@@ -311,11 +343,11 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, IntegrateInStages)
     EXPECT_NEAR((solver_staged.getSolution() - solver_direct.getSolution()).lpNorm<Eigen::Infinity>(), 0.0, 1e-12);
 }
 
-TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, InvalidTendThrows)
+// =============================================================================
+// Test 7 - Verify that the solver throws if t_end <= t_current.
+// =============================================================================
+TEST_F(DirichletBCTimeConvergence, InvalidTendThrows)
 {
-    /*
-    This test verifies that the solver throws if t_end <= t_start.
-    */
     constexpr int n = 51;
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
@@ -323,7 +355,7 @@ TEST_F(TimeConvergence_Single_Eigenmode_Dirichlet, InvalidTendThrows)
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrators
-    double dt = 0.01 / alpha;
+    constexpr double dt = 0.01 / alpha;
     temporal::CrankNicolson ti(dt);
 
     // Create solver object

@@ -19,6 +19,9 @@ class BoundaryConditionTest : public testing::Test
     {};
 };
 
+// =============================================================================
+// Test 1 — Constructor
+// =============================================================================
 TEST_F(BoundaryConditionTest, Constructor) 
 {
     EXPECT_DOUBLE_EQ(DirichletBC.f(1,2,30), 3);
