@@ -50,7 +50,7 @@ TEST(FiniteDifference2D, LaplacianComponents)
     auto source = [](double, double, double){return 0.0;};
 
     // Discretise PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     fd.discretize();
@@ -68,7 +68,7 @@ TEST(FiniteDifference2D, LaplacianComponents)
 }
 // =============================================================================
 // Test 2 - Verify consistency of the discrete Laplacian operator for a harmonic 
-//          function. For u(x,y) = x^2 - y^2, -Δu = 0.
+//          function. For u(x,y) = x^2 - y^2, -div(α∇u) = 0.
 // =============================================================================
 TEST(FiniteDifference2D, LaplacianVanishes) 
 {
@@ -94,7 +94,7 @@ TEST(FiniteDifference2D, LaplacianVanishes)
     auto solution = [](double x, double y){return x * x - y * y;};
 
     // Discretize PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
     fd.discretize();
     fd.updateRHS();
@@ -120,7 +120,7 @@ TEST(FiniteDifference2D, LaplacianVanishes)
 // Test 3 - Verify the expected convergence rate (2nd-order) to solve the
 //          Laplace equation with Dirichlet BCs in all sides. 
 //    
-// For u(x,y) = sin(πx/Lx) * sinh(πy/Lx), -Δu = 0. Imposing Dirichlet BCs at all 
+// For u(x,y) = sin(πx/Lx) * sinh(πy/Lx), -div(α∇u) = 0. Imposing Dirichlet BCs at all 
 // sides leads to u_left = u_right = u_bottom = 0, u_top = sin(πx/Lx) * 
 // sinh(πLy/Lx)
 //    
@@ -153,7 +153,7 @@ TEST(FiniteDifference2D, LaplaceDirichletBCconvergence)
     auto solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * y / Lx);};
 
     // Discretise PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
     spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
@@ -206,7 +206,7 @@ TEST(FiniteDifference2D, LaplaceMixedBCconvergence)
     auto solution = [&](double x, double y){return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx);};
 
     // Discretise PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
     spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
@@ -242,7 +242,7 @@ TEST(FiniteDifference2D, LaplaceNullSpace)
     auto source = [](double, double, double){return 0.0;};
 
     // Discretise PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
     fd.discretize();
 
@@ -289,7 +289,7 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
     auto source = [&](double x, double y, double){return -(4 * x * x - 2 - M_PI * M_PI) * solution(x,y);};
 
     // Discretize PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
     spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
@@ -354,10 +354,55 @@ TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
     };
 
     // Discretize PDE
-    constexpr double alpha = 1.0;
+    auto alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     double err = solve_and_get_error(fd, mesh, exact);
 
     EXPECT_LT(err, 1e-3);
+}
+
+TEST(FiniteDifference2D, Poisson_VariableAlpha_Convergence)
+{
+    /*
+    Verifies 2nd-order convergence for -div(α∇u) = f with variable diffusivity.
+
+    For α(x,y) = 1 + x and u(x,y) = sin(πx)sin(πy), the source term is:
+        f(x,y) = π cos(πx)sin(πy) - 2π²(1+x)sin(πx)sin(πy)
+
+    Dirichlet BCs u=0 on all sides (sin vanishes at 0 and π).
+    */
+    constexpr int n_coarse = 51, n_fine = 101;
+
+    const spatial::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
+    const spatial::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
+
+    auto alpha = [](double x, double){return 1.0 + x;};
+
+    auto zero = [](double, double, double){ return 0.0; };
+    spatial::BoundaryConditions bc;
+    bc[spatial::DomainSide::Left]   = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
+    bc[spatial::DomainSide::Right]  = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
+    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
+    bc[spatial::DomainSide::Top]    = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
+
+    auto source = [](double x, double y, double)
+    {
+        return -(M_PI * std::cos(M_PI*x) * std::sin(M_PI*y) - 2.0 * M_PI*M_PI * (1.0 + x) * std::sin(M_PI*x) * std::sin(M_PI*y));
+    };
+
+    auto solution = [](double x, double y)
+    {
+        return std::sin(M_PI * x) * std::sin(M_PI * y);
+    };
+
+    spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+
+    double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
+    double err_fine   = solve_and_get_error(fd_fine,   mesh_fine,   solution);
+
+    double rate = std::log(err_coarse / err_fine) / std::log(mesh_coarse.getDx() / mesh_fine.getDx());
+
+    EXPECT_NEAR(rate, 2.0, 0.1);
 }

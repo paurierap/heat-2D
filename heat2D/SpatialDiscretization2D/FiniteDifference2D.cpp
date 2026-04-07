@@ -11,7 +11,7 @@
 namespace spatial
 {
 
-FiniteDifference2D::FiniteDifference2D(double alpha, const StructuredMesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source)
+FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> alpha, const StructuredMesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source)
 : SpatialDiscretization2D(alpha, mesh, boundary_conditions, source), mesh_(mesh)
 {
 
@@ -62,16 +62,17 @@ void FiniteDifference2D::discretize()
 void FiniteDifference2D::addDiagonalTerm(int nodeID)
 {
     int localID = global_to_local_[nodeID];
+    double x = mesh_.getNode(nodeID).x_;
+    double y = mesh_.getNode(nodeID).y_;
     double dx = mesh_.getDx();
     double dy = mesh_.getDy();
 
-    tripletList.emplace_back(localID, localID, alpha_ * (-2. / (dx*dx) -2. / (dy*dy)));
+    tripletList.emplace_back(localID, localID, -(alpha_(x + 0.5 * dx, y) + alpha_(x - 0.5 * dx, y)) / (dx*dx) -(alpha_(x, y + 0.5 * dy) + alpha_(x, y - 0.5 * dy)) / (dy*dy));
 }
 
 // Off diagonal contributions (multiplier parameter, defaulted to 1.0, included in case there is a contribution from Neumann BCs)
 void FiniteDifference2D::addOffDiagonalTerm(int nodeID, DomainSide side, double multiplier)
 {
-    multiplier *= alpha_;
     std::optional<int> neighbor = mesh_.getNeighbor(nodeID, side);
 
     // Check if neighbor exists (in case of boundary nodes)
@@ -83,17 +84,22 @@ void FiniteDifference2D::addOffDiagonalTerm(int nodeID, DomainSide side, double 
     int localID = global_to_local_[nodeID];
     int neighbor_local = global_to_local_[*neighbor];
 
+    double x = mesh_.getNode(nodeID).x_;
+    double y = mesh_.getNode(nodeID).y_;
+
     // Horizontal nodes of the stencil
     if (side == DomainSide::Left || side == DomainSide::Right)
     {
         double dx = mesh_.getDx();
-        tripletList.emplace_back(localID, neighbor_local, 1. / (dx * dx) * multiplier);
+        double sign = (side == DomainSide::Left) ? -1 : 1;
+        tripletList.emplace_back(localID, neighbor_local, alpha_(x + 0.5 * sign * dx, y) / (dx * dx) * multiplier);
         return;
     }
     
     // Vertical nodes of the stencil
     double dy = mesh_.getDy();
-    tripletList.emplace_back(localID, neighbor_local, 1. / (dy * dy) * multiplier);
+    double sign = (side == DomainSide::Bottom) ? -1 : 1;
+    tripletList.emplace_back(localID, neighbor_local, alpha_(x, y + 0.5 * sign * dy) / (dy * dy) * multiplier);
 }
 
 // Second order discretization approximation is applied to the inner nodes. If an inner node has a Dirichlet boundary node, this is later treated when applying boundary conditions.
@@ -199,9 +205,31 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const BoundaryNode2D& 
         int neighbor_local = global_to_local_[neighbor_inward];
 
         // Add contribution to the equation of the inward neighbor (corresponding to the row of that node in vector b)
-        double h = (inward_normal == DomainSide::Left || inward_normal == DomainSide::Right) ? mesh_.getDx() : mesh_.getDy();
+        //double h = (inward_normal == DomainSide::Left || inward_normal == DomainSide::Right) ? mesh_.getDx() : mesh_.getDy();
+        
+        double h;
+        switch (inward_normal)
+        {
+            case DomainSide::Left:
+                h = mesh_.getDx();
+                b_[neighbor_local] += alpha_(x - 0.5 * h, y) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                break;
 
-        b_[neighbor_local] += 1. / (h * h) * boundary_conditions_.at(side)->f(x,y,t) * alpha_;
+            case DomainSide::Right:
+                h = mesh_.getDx();
+                b_[neighbor_local] += alpha_(x + 0.5 * h, y) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                break;
+
+            case DomainSide::Bottom:
+                h = mesh_.getDy();
+                b_[neighbor_local] += alpha_(x, y - 0.5 * h) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                break;
+
+            case DomainSide::Top:
+                h = mesh_.getDy();
+                b_[neighbor_local] += alpha_(x, y + 0.5 * h) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                break;
+        }
     }
 }
 
@@ -218,7 +246,7 @@ void FiniteDifference2D::updateNeumannBoundaryCondition(const BoundaryNode2D& bo
         if (side == DomainSide::Left || side == DomainSide::Right) h = mesh_.getDx();
         else h = mesh_.getDy();
 
-        b_[localID] += 2. / h * boundary_conditions_.at(side)->f(x,y,t) * alpha_;
+        b_[localID] += 2. * alpha_(x,y) / h * boundary_conditions_.at(side)->f(x,y,t);
     }
 }
 

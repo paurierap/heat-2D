@@ -25,7 +25,7 @@ class SpatialDiscretization2D
     protected:
         BoundaryConditions boundary_conditions_;
         std::function<double (double, double, double)> source_;
-        double alpha_;
+        std::function<double (double, double)> alpha_;
 
         // Sparse matrix and tripletlist for assembly
         Eigen::SparseMatrix<double> matrix_;
@@ -40,7 +40,7 @@ class SpatialDiscretization2D
         std::vector<bool> is_dirichlet_;
 
     public:
-        SpatialDiscretization2D(double alpha, const Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
+        SpatialDiscretization2D(std::function<double (double, double)> alpha, const Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
         : alpha_(alpha),
         mesh_(mesh), 
         boundary_conditions_(boundary_conditions),

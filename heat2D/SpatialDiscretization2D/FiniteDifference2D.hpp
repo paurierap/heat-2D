@@ -19,7 +19,7 @@ class FiniteDifference2D: public SpatialDiscretization2D
         const StructuredMesh2D& mesh_;
 
     public:
-        FiniteDifference2D(double, const StructuredMesh2D&, BoundaryConditions, std::function<double (double, double, double)>);
+        FiniteDifference2D(std::function<double (double, double)>, const StructuredMesh2D&, BoundaryConditions, std::function<double (double, double, double)>);
 
         void buildMappings() override;
 

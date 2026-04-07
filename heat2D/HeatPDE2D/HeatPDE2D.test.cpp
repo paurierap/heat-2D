@@ -56,7 +56,7 @@ double solve_and_get_error_vs_ref(HeatPDE2D& solver, const Eigen::Ref<const Eige
 //           Implicit Euler and Crank-Nicolson for the heat equation with 
 //           Dirichlet BCs in all sides. 
 //
-// For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy), ∂u/∂t = αΔu. Imposing 
+// For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy), ∂u/∂t = div(α∇u). Imposing 
 // Dirichlet BCs at all sides leads to u_left = u_right = u_bottom = u_top = 0, 
 // and the initial condition u0 = u(x,y,0) = sin(πx) * sin(πy).
 //
@@ -66,9 +66,11 @@ double solve_and_get_error_vs_ref(HeatPDE2D& solver, const Eigen::Ref<const Eige
 class DirichletBCTimeConvergence : public testing::Test
 {
     protected: 
-        static constexpr double alpha = 0.5 / (M_PI * M_PI);
+        static constexpr double alpha_val = 0.5 / (M_PI * M_PI);
         static constexpr double t_start = 0.0;
-        static constexpr double t_end = 0.1 / alpha;
+        const double t_end = 0.1 / alpha_val;
+
+        std::function<double(double, double)> alpha = [](double, double){return alpha_val;};
 
         std::function<double(double, double, double)> zeroBC = [](double, double, double){return 0.0;};
 
@@ -76,8 +78,8 @@ class DirichletBCTimeConvergence : public testing::Test
 
         std::function<double(double, double, double)> source = [](double, double, double){return 0.0;};
 
-        std::function<double(double, double, double)> exact = [](double x, double y, double t)
-        {return std::exp(-2 * M_PI * M_PI * alpha * t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
+        std::function<double(double, double, double)> exact = [&](double x, double y, double t)
+        {return std::exp(-2 * M_PI * M_PI * alpha_val * t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
 
         spatial::BoundaryConditions bc;
 
@@ -113,8 +115,8 @@ TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
     spatial::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
 
     // Time integrators
-    constexpr double dt_coarse = 0.0002 / alpha;
-    constexpr double dt_fine = 0.0001 / alpha;
+    const double dt_coarse = 0.0002 / alpha_val;
+    const double dt_fine = 0.0001 / alpha_val;
     temporal::ExplicitEuler EEti_coarse(dt_coarse), EEti_fine(dt_fine);
     temporal::CrankNicolson CNti_ref(1e-4);
 
@@ -149,8 +151,8 @@ TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
     spatial::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
-    constexpr double dt_coarse = 0.01 / alpha;
-    constexpr double dt_fine = 0.005 / alpha;
+    const double dt_coarse = 0.01 / alpha_val;
+    const double dt_fine = 0.005 / alpha_val;
     temporal::ImplicitEuler IEti_coarse(dt_coarse), IEti_fine(dt_fine);
 
     // Create solver object
@@ -183,8 +185,8 @@ TEST_F(DirichletBCTimeConvergence, CrankNicolson)
     spatial::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
-    constexpr double dt_coarse = 0.02 / alpha;
-    constexpr double dt_fine = 0.01 / alpha;
+    const double dt_coarse = 0.02 / alpha_val;
+    const double dt_fine = 0.01 / alpha_val;
     temporal::CrankNicolson CNti_coarse(dt_coarse), CNti_fine(dt_fine);
 
     // Create solver object
@@ -204,7 +206,7 @@ TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 // Test 4 - Verify that Crank Nicolson has the expected residual error.
 //
 // For u(x,y,t) = exp(-2π²αt) * sin(πx) * sin(πy) + 1/2 * exp(-5π²αt) * sin(2πx) 
-// * sin(πy), ∂u/∂t = αΔu.  Imposing Dirichlet BCs at all sides leads to u_left 
+// * sin(πy), ∂u/∂t = div(α∇u).  Imposing Dirichlet BCs at all sides leads to u_left 
 // = u_right = u_bottom = u_top = 0, and the initial condition u0 = u(x,y,0) = 
 // = sin(πx) * sin(πy) + 1/2 * sin(2πx) * sin(πy) is used.
 //
@@ -215,7 +217,8 @@ TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 TEST(HeatPDE2D, CrankNicolsonExpectedError)
 {
     constexpr int n = 101;
-    constexpr double alpha = 0.5 / (M_PI * M_PI);
+    constexpr double alpha_val = 0.5 / (M_PI * M_PI);
+    std::function<double(double, double)> alpha = [](double, double){return alpha_val;};
     const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
@@ -233,10 +236,10 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
     auto u0 = [](double x, double y) {return std::sin(M_PI * x) * std::sin(M_PI * y) + 0.5 * std::sin(2 * M_PI * x) * std::sin(M_PI * y);};
 
     // Exact solution
-    auto exact = [alpha](double x, double y, double t)
+    auto exact = [&](double x, double y, double t)
     {
-        double mode1 = std::exp(-2 * M_PI * M_PI * alpha * t) * std::sin(M_PI * x) * std::sin(M_PI * y);
-        double mode2 = 0.5 * std::exp(-5 * M_PI * M_PI * alpha * t) * std::sin(2 * M_PI * x) * std::sin(M_PI * y);
+        double mode1 = std::exp(-2 * M_PI * M_PI * alpha_val * t) * std::sin(M_PI * x) * std::sin(M_PI * y);
+        double mode2 = 0.5 * std::exp(-5 * M_PI * M_PI * alpha_val * t) * std::sin(2 * M_PI * x) * std::sin(M_PI * y);
         return mode1 + mode2;
     };
 
@@ -244,14 +247,14 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrator
-    constexpr double dt = 0.001 / alpha;
+    const double dt = 0.001 / alpha_val;
     temporal::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, 0.0, u0);
 
     // Solve and get residual error
-    constexpr double t_end = 0.1 / alpha;
+    const double t_end = 0.1 / alpha_val;
     double res_err = solve_and_get_error(solver, mesh, exact, t_end);
 
     EXPECT_LT(res_err, 1e-3);
@@ -260,7 +263,7 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
 // =============================================================================
 // Test 5 - Verify that source terms are treated correctly.
 //
-// For u(x,y,t) = exp(-t) * sin(πx) * sin(πy), we have ∂u/∂t = Δu + f, with 
+// For u(x,y,t) = exp(-t) * sin(πx) * sin(πy), we have ∂u/∂t = div(α∇u) + f, with 
 // f(x,y,t) = (-1 + 2π²) * u(x,y,t).  Imposing Dirichlet BCs at all sides leads 
 // to u_left = u_right = u_bottom = u_top = 0, and the initial condition u0 = 
 // = u(x,y,0) = sin(πx) * sin(πy) is used.
@@ -292,7 +295,7 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
     auto u0 = [exact](double x, double y){return exact(x, y, 0.0);};
 
     // Discretize PDE
-    constexpr double alpha = 1.0;
+    std::function<double(double, double)> alpha = [](double, double){return 1.0;};
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
     
     // Time integrator
@@ -326,7 +329,7 @@ TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
     spatial::FiniteDifference2D fd_direct(alpha, mesh, bc, source);
 
     // Time integrators
-    double dt = 0.01 / alpha;
+    const double dt = 0.01 / alpha_val;
     temporal::CrankNicolson ti_staged(dt);
     temporal::CrankNicolson ti_direct(dt);
 
@@ -355,7 +358,7 @@ TEST_F(DirichletBCTimeConvergence, InvalidTendThrows)
     spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrators
-    constexpr double dt = 0.01 / alpha;
+    const double dt = 0.01 / alpha_val;
     temporal::CrankNicolson ti(dt);
 
     // Create solver object
