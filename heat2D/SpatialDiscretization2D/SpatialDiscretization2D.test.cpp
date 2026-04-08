@@ -120,9 +120,9 @@ TEST(FiniteDifference2D, LaplacianVanishes)
 // Test 3 - Verify the expected convergence rate (2nd-order) to solve the
 //          Laplace equation with Dirichlet BCs in all sides. 
 //    
-// For u(x,y) = sin(πx/Lx) * sinh(πy/Lx), -div(α∇u) = 0. Imposing Dirichlet BCs at all 
-// sides leads to u_left = u_right = u_bottom = 0, u_top = sin(πx/Lx) * 
-// sinh(πLy/Lx)
+// For u(x,y) = sin(πx/Lx) * sinh(πy/Lx), -div(α∇u) = 0. Imposing Dirichlet BCs 
+// at all sides leads to u_left = u_right = u_bottom = 0, u_top = sin(πx/Lx) * 
+// sinh(πLy/Lx).
 //    
 // Two different mesh sizes are used to test convergence, with 
 // h_fine = 0.5 * h_coarse.      
@@ -171,10 +171,10 @@ TEST(FiniteDifference2D, LaplaceDirichletBCconvergence)
 // Test 4 - Verify the expected convergence rate (2nd-order) to solve the 
 //          Laplace equation with mixed BCs.  
 //    
-// For u(x,y) = sin(πx/Lx) * cosh(πy/Lx), -Δu = 0. Imposing Dirichlet BCs on the 
-// right, left, and bottom sides leads to u_left = u_right = 0, and u_bottom = 
-// = (πx/Lx). Imposing a Neumann BC on the top reads 
-// du/dy|_top = π/Lx * sin(πx/Lx) * sinh(πy/Lx)
+// For u(x,y) = sin(πx/Lx) * cosh(πy/Lx), --div(α∇u) = 0. Imposing Dirichlet BCs 
+// on the right, left, and bottom sides leads to u_left = u_right = 0, and 
+// u_bottom = (πx/Lx). Imposing a Neumann BC on the top reads du/dy|_top = 
+// = π/Lx * sin(πx/Lx) * sinh(πy/Lx)
 //    
 // Two different mesh sizes are used to test convergence, with 
 // h_fine = 0.5 * h_coarse.      
@@ -256,10 +256,10 @@ TEST(FiniteDifference2D, LaplaceNullSpace)
 // Test 6 - Verify the expected convergence rate (2nd-order) to solve the 
 //          Poisson equation with mixed BCs.  
 //    
-// For u(x,y) = exp(-x²) * sin(πy), -Δu = -(4x² - 2 - π²) * exp(-x²) * sin(πy). 
-// Imposing Dirichlet BCs on the bottom and top sides leads to u_bottom = u_top 
-// = 0. Imposing Neumann BCs on the left and right reads du/dy|_left = 0, and
-// du/dy|_right = -2 / exp(1) * sin(πy).
+// For u(x,y) = exp(-x²) * sin(πy), -div(α∇u) = -(4x² - 2 - π²) * exp(-x²) * 
+// * sin(πy). Imposing Dirichlet BCs on the bottom and top sides leads to 
+// u_bottom = u_top = 0. Imposing Neumann BCs on the left and right reads 
+// du/dy|_left = 0, and du/dy|_right = -2 / exp(1) * sin(πy).
 //
 // Two different mesh sizes are used to test convergence, with 
 // h_fine = 0.5 * h_coarse.      
@@ -306,8 +306,8 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
 // Test 7 - Verify that the Poisson equation is solved with mixed BCs and an 
 //          anisotropic grid.
 //
-// For u(x,y,t) = log(sin²(x * y) + 1), -Δu = -(x² + y²) * (3 * cos(2 * x * y) 
-// - 1) / (1 + sin²(x * y))².  Imposing Dirichlet BCs at the left and right 
+// For u(x,y) = log(sin²(x * y) + 1), -div(α∇u) = -(x² + y²) * (3 * cos(2 * x * 
+// * y) - 1) / (1 + sin²(x * y))². Imposing Dirichlet BCs at the left and right 
 // sides leads to u_left = 0 and u_right = log(sin²(2 * y) + 1). Imposing 
 // Neumann BCs on the bottom and top sides leads to du/dy|_bottom = 0, and 
 // du/dy|_top = x * sin(2 * x) / (sin²(x) + 1).
@@ -362,23 +362,24 @@ TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
     EXPECT_LT(err, 1e-3);
 }
 
-TEST(FiniteDifference2D, Poisson_VariableAlpha_Convergence)
+// =============================================================================
+// Test 8 - Verify the expected convergence rate (2nd-order) to solve the 
+//          Poisson equation with a source and variable diffusivity.  
+//
+// For u(x,y) = sin(πx)sin(πy) and α(x,y) = 1 + x, -div(α∇u) = πcos(πx)sin(πy) 
+// - 2π²(1+x)sin(πx)sin(πy). Imposing Dirichlet BCs at all four sides leads to 
+// u_left = u_right = u_bottom = u_top = 0.
+//
+// With the choice of parameters, O(error) ≈ O(dx²) ≈ 4e-4 < 1e-3.
+// =============================================================================
+TEST(FiniteDifference2D, PoissonVariableAlphaConvergence)
 {
-    /*
-    Verifies 2nd-order convergence for -div(α∇u) = f with variable diffusivity.
-
-    For α(x,y) = 1 + x and u(x,y) = sin(πx)sin(πy), the source term is:
-        f(x,y) = π cos(πx)sin(πy) - 2π²(1+x)sin(πx)sin(πy)
-
-    Dirichlet BCs u=0 on all sides (sin vanishes at 0 and π).
-    */
     constexpr int n_coarse = 51, n_fine = 101;
 
     const spatial::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
     const spatial::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
 
-    auto alpha = [](double x, double){return 1.0 + x;};
-
+    // Define BCs
     auto zero = [](double, double, double){ return 0.0; };
     spatial::BoundaryConditions bc;
     bc[spatial::DomainSide::Left]   = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
@@ -386,19 +387,24 @@ TEST(FiniteDifference2D, Poisson_VariableAlpha_Convergence)
     bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
     bc[spatial::DomainSide::Top]    = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
 
+    // Source term
     auto source = [](double x, double y, double)
     {
         return -(M_PI * std::cos(M_PI*x) * std::sin(M_PI*y) - 2.0 * M_PI*M_PI * (1.0 + x) * std::sin(M_PI*x) * std::sin(M_PI*y));
     };
 
+    // Exact solution
     auto solution = [](double x, double y)
     {
         return std::sin(M_PI * x) * std::sin(M_PI * y);
     };
 
+    // Discretize PDE
+    auto alpha = [](double x, double){return 1.0 + x;};
     spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
     spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
+    // Verify expected convergence rate
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine   = solve_and_get_error(fd_fine,   mesh_fine,   solution);
 
