@@ -20,6 +20,7 @@ using BoundaryConditions = std::unordered_map<DomainSide, std::shared_ptr<Bounda
 class SpatialDiscretization2D
 {
     private: 
+        // TODO: Study change from reference to mesh to using a shared_ptr or even removing mesh altogether.
         const Mesh2D& mesh_;
 
     protected:
