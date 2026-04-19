@@ -36,4 +36,9 @@ endif()
 
 # Add subdirectories
 add_subdirectory(heat2D)
-add_subdirectory(examples)
+
+option(BUILD_EXAMPLES "Build examples" OFF)
+
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
