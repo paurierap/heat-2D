@@ -2,12 +2,18 @@
 
 [![Tests](https://github.com/paurierap/heat-2D/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/paurierap/heat-2D/actions/workflows/ci-tests.yml)
 
+<div align="center">
+
 ![Moving source solution](examples/moving-source.gif)
+
+</div>
 
 ## About
 
 *Heat2D* is a C++ lightweight numerical library for solving 2D parabolic and elliptic partial differential equations (PDEs) of the form
-$$\frac{\partial u}{\partial t} = \nabla\cdot(\alpha\nabla u) + f,$$
+```math
+\frac{\partial u}{\partial t} = \nabla\cdot(\alpha\nabla u) + f,
+```
 where $u = u(x,y,t)$ usually represents a diffusive variable, $\alpha = \alpha(x,y)$ is the (linearly) space-dependent diffusivity and $f=f(x,y,t)$ is a source term. Only **axis-aligned, rectangular** 2D domains are considered.
 
 This project is designed to separate the spatial discretization from the time integration in a modular and structured way. Sparse linear algebra is used with [Eigen](https://libeigen.gitlab.io) to improve performance and reduce memory consumption.
@@ -26,7 +32,7 @@ The project is centered around the association of classes representing the diffe
 
 ### Preliminaries
 
-The aforementioned parabolic PDE is fully characterized by definining the physical domain $\Omega\in\mathbb{R}^2$ alongside boundary conditions in the border $\partial\Omega =\partial\Omega_{l}\cup\partial\Omega_{r}\cup\partial\Omega_{b}\cup\partial\Omega_{t}$ (representing, respectively: left, right, bottom and top boundaries), thermal diffusivity $\alpha$, source $f$, and initial condition $u_0$ alongside an initial time $t_0$.
+The aforementioned parabolic PDE is fully characterized by defining the physical domain $\Omega\in\mathbb{R}^2$ alongside boundary conditions in the border $\partial\Omega =\partial\Omega_{l}\cup\partial\Omega_{r}\cup\partial\Omega_{b}\cup\partial\Omega_{t}$ (representing, respectively: left, right, bottom and top boundaries), thermal diffusivity $\alpha$, source $f$, and initial condition $u_0$ alongside an initial time $t_0$.
 
 Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-called Poisson (Laplace if $f=0$) equation. This elliptic PDE can also be solved and does not require an initial condition. 
 
@@ -40,7 +46,8 @@ Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-call
 
 Another abstract base class is represented in ```spatial::Mesh2D```, currently implemented by ```spatial::StructuredMesh2D``` (unstructured meshes are planned for the future). This can be instantiated by providing the utility ```struct Domain2D```, which defines the axis-aligned 2D rectangular domain $\Omega$ based on the coordinates of its sides: $x_l$, $x_r$, $y_b$ and $y_t$ (in this order); along with the number of desired nodes in each direction, $n_x$ and $n_y$.
 
-In addition to a mesh, boundary conditions are specified in ```spatial::SpatialDiscretization2D``` using the type definition ```using BoundaryConditions = std::unordered_map<DomainSide, std::shared_ptr<BoundaryCondition>>;```. Here, ```DomainSide::Left```, ```DomainSide::Right```, ```DomainSide::Bottom``` and```DomainSide::Top``` map to a (yet another) abstract base class ```BoundaryCondition```. Shared pointers are required for runtime polymorphism and are appreciated for sharing boundary conditions with different solvers. The class ```BoundaryCondition``` is implemented by both ```DirichletBoundaryCondition``` and ```NeumannBoundaryCondition```. Each of these requires a ```std::function<double(double,double,double)>``` to describe either $u|_{\partial\Omega_i}=g(x,y,t)$ or $(\nabla u\cdot\mathbb{\hat{n}})|_{\partial\Omega_i}=h(x,y,t)$, respectively. Overall, the use of ```std::function``` is quite extended within the library due to its convenience to define most input functions.
+Boundary conditions are specified as a map from ```DomainSide``` to an ```std::shared_ptr<BoundaryCondition>>```, supporting both 
+```DirichletBoundaryCondition``` and ```NeumannBoundaryCondition```. Each takes a ```std::function<double(double,double,double)>``` describing the boundary value as a function of position and time.
 
 Finally, ```spatial::SpatialDiscretization2D``` uses ```std::function<double(double,double,double)>``` to describe the source term $f$, and ```std::function<double(double,double)>``` for the diffusivity $\alpha$.
 
@@ -51,7 +58,9 @@ Internally, the problem is discretized using all these constructs into an ```Eig
 ```temporal::TimeIntegrator``` is the base class for a time integration scheme, either explicit or implicit. It only takes the timestep $dt$ as input parameter and defines the member function ```step```, which takes care of time-marching for a solution. There are currently three implementations for this class, each with a different ```step```:
 
 - ```temporal::ExplicitEuler```: a first-order explicit time integrator. For the time being, no stability checks are made. It's up to the user to ensure the CFL condition holds
-$$\frac{dt}{h^2} < \frac{1}{4\alpha}$$
+```math
+\frac{dt}{h^2} < \frac{1}{4\alpha}
+```
 - ```temporal::ImplicitEuler```: a first-order implicit time integrator. The constant part of the resulting system of equations is pre-computed for increased performance using ```setUp```. If used without ```HeatPDE2D```, ```setUp``` is **must** be run *before* ```step```.
 - ```temporal::CrankNicolson```: a second-order implicit time integrator. The same conditions for ```setUp``` as before apply here.
 
@@ -59,13 +68,29 @@ $$\frac{dt}{h^2} < \frac{1}{4\alpha}$$
 
 A small class ```SolutionWriter``` takes care of writing the output of the solution into a file in CSV format. 
 
-## Build
+## Build & Test
+
+**Requirements:** C++17 compiler, CMake 3.14+, Eigen3
 
 ```bash
-mkdir build && cd build
-cmake ..
-make
-ctest --verbose
+git clone https://github.com/paurierap/heat-2D
+cd heat-2D
+cmake -S . -B build
+cmake --build build --parallel
+ctest --test-dir build --verbose
+```
+
+To build the examples:
+```bash
+cmake -S . -B build -DBUILD_EXAMPLES=ON
+cmake --build build --parallel
+./build/examples/heat2d_examples
+```
+
+**Using in your own project:** Heat2D is a header-heavy library. Add it as a subdirectory in your CMake project:
+```cmake
+add_subdirectory(heat2D)
+target_link_libraries(your_target PRIVATE HeatPDE)
 ```
 
 ## Usage
@@ -73,9 +98,13 @@ ctest --verbose
 As an example, let us take the solution portrayed at the top of the README. Let us assume we want to solve the 2D heat equation with isolated boundary conditions (i.e., null Neumann BCs) in the unit square $\Omega=[0,1]\times[0,1]$, with a non-uniform $\alpha(x,y) = 0.005 + 0.02e^{-8(x-0.5)^2(y-0.5)^2}$. This thermal diffusivity is slightly higher in the center, therefore heat spreads faster in that region. 
 
 Furthermore, we add a moving source term around a circle of radius $r=0.25$ centered at $(0.5,0.5)$ corresponding to a Gaussian pulse $f (x,y,t) = e^{-60(x-0.5+r\cos{t})^2(y-0.5+r\sin{t})^2}$. At $t_0=0$, we have $u_0=0$. We thus have
-$$\frac{\partial u}{\partial t} = \nabla\cdot\left(\alpha\nabla u\right) + f,$$
-with 
-$$(\nabla u\cdot\mathbb{\hat{n}})|_{\partial\Omega_i}=0,\ \text{and}\ u (x,y,0) = 0.$$
+```math
+\frac{\partial u}{\partial t} = \nabla\cdot\left(\alpha\nabla u\right) + f,
+```
+with
+```math 
+(\nabla u\cdot\mathbb{\hat{n}})|_{\partial\Omega_i}=0,\ \text{and}\ u (x,y,0) = 0.
+```
 
 ### Meshing the domain
 
@@ -189,8 +218,16 @@ Plotting the data in ```moving-source.csv``` leads to a rather nice-looking anim
 Many cool-looking physical animations can be simulated by tweaking the different variables/parameters of the heat equation. Two other examples are available in ```heat2D/examples/```:
 - *Colliding pulses*: four initial Gaussian pulses are located at the center of each quadrant in $\Omega = [0,1]\times[0,1]$ with enforced null Dirichlet boundary conditions. Vertical diffusion is faster due to a non-linear thermal diffusivity $\alpha(y) = 0.01e^{-25(y-0.5)^2}$:
 
+<div align="center">
+
 ![Four colliding pulses](examples/colliding-pulses.gif)
+
+</div>
 
 - *Thermal mirage*: A sinusoidal Dirichlet boundary condition is applied at the bottom whilst keeping the rest of the borders isolated, generating the effect of a thermal mirage. There is no heat source nor initial condition. The domain heats up as a consequence of the boundary condition $u(x,0,t) = 0.5 + 0.1\sin{\left(2\pi x + t\right)} + 0.2\sin{\left(6\pi x- 2t\right)}$ and diffusivity $\alpha(y) = 0.02 + 0.01e^{-y}$:
 
+<div align="center">
+
 ![Thermal mirage](examples/thermal-mirage.gif)
+
+</div>
