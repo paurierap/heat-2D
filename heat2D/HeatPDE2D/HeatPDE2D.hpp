@@ -28,7 +28,7 @@ class HeatPDE2D
         t_current_(t_start)
         {
             spatial_discretization_.discretize();
-
+            
             u_current_ = spatial_discretization_.reduce(u_start);
             
             // Cache necessary matrices (depending on the time integration scheme)
@@ -41,7 +41,7 @@ class HeatPDE2D
         // DefaultCallback generates a default dummy function that does nothing when no callback function is provided.
         struct DefaultCallback 
         {
-            void operator()(double, const Eigen::VectorXd&) const noexcept {}
+            void operator()(double, const Eigen::VectorXd&) const {}
         };
 
         // The callback option is used to provide IO support to a user. This function is called every step using the current time t and the solution vector. This way, the user can choose if the solution is to be outputted and with which frequency by means of a lambda function.
@@ -80,4 +80,4 @@ class HeatPDE2D
         }
 };
 
-#endif // HEATPDE_HPP
+#endif // HEATPDE2D_HPP

@@ -13,6 +13,7 @@ target_link_libraries(spatial
   PUBLIC
   mesh
   Eigen3::Eigen
+  $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
 )
 
 # Build SpatialDiscretization test

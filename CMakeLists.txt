@@ -5,7 +5,8 @@ project(heat2d)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-enable_testing()
+# Additional compiler flags
+add_compile_options(-march=native)
 
 # Google Tests:
 include(FetchContent)
@@ -17,9 +18,10 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(googletest)
 
+enable_testing()
 include(GoogleTest)
 
-# Try to find Eigen in the system
+# Try to find Eigen
 find_package(Eigen3 3.3 REQUIRED NO_MODULE)
 
 if(NOT TARGET Eigen3::Eigen)
@@ -34,11 +36,19 @@ if(NOT TARGET Eigen3::Eigen)
   FetchContent_MakeAvailable(eigen)
 endif()
 
+# Try to find OpenMP
+find_package(OpenMP)
+
 # Add subdirectories
 add_subdirectory(heat2D)
 
 option(BUILD_EXAMPLES "Build examples" OFF)
+option(BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(BUILD_BENCHMARKS)
+    add_subdirectory(benchmarks)
 endif()

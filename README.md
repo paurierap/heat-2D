@@ -164,10 +164,10 @@ auto source = [](double x, double y, double t)
 Finally, a ```FiniteDifference2D``` object can be instantiated:
 
 ```cpp
-    #include "FiniteDifference2D.hpp"
+#include "FiniteDifference2D.hpp"
 
-    // Spatial discretization object
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+// Spatial discretization object
+spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
 ```
 
 ### Solving the heat equation

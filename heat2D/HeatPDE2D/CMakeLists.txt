@@ -8,7 +8,7 @@ target_include_directories(HeatPDE
   ${PROJECT_SOURCE_DIR}/heat2D/SolutionWriter
 )
 
-target_link_libraries(HeatPDE 
+target_link_libraries(HeatPDE
   INTERFACE 
   spatial 
   temporal
