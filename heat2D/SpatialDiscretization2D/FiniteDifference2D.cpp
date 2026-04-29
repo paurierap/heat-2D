@@ -56,9 +56,13 @@ void FiniteDifference2D::buildMappings()
 
 void FiniteDifference2D::discretize()
 {
+    std::cout << "\nDiscretizing the spatial domain using finite differences...\n";
+
     applyLaplacian();
     applyBoundaryConditions();
     matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
+
+    std::cout << "  -> Spatial discretization was successful.\n";
 }
 
 // Diagonal contribution to u_{i,j}
@@ -259,7 +263,10 @@ void FiniteDifference2D::updateNeumannBoundaryCondition(const BoundaryNode2D& bo
 // Solve Poisson's equation, ie du/dt = 0.
 Eigen::VectorXd FiniteDifference2D::solveSteadyState()
 {
+    std::cout << "\nSolving steady-state problem...\n";
     Eigen::VectorXd reduced_sol_ = solve_reduced();
+    std::cout << "  -> Steady-state solution was successful!\n";
+    
     return fillDirichletNodes(reduced_sol_, 0.0);
 }
 
@@ -329,8 +336,6 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
         
         Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
         if (residual.norm() / b_.norm() > 1e-10) throw std::runtime_error("LDLT solve residual too large");
-        
-        std::cout << "\nSolving with LDL^T factorization was successful!\n";
     }
     else // Fall back to LU
     {
@@ -343,8 +348,6 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
         
         Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
         if (residual.norm() / b_.norm() > 1e-10) throw std::runtime_error("LU solve residual too large");
-
-        std::cout << "\nSolving with LU factorization was successful!\n";
     }
 
     return reduced_sol_;

@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <functional>
+#include <iostream>
 
 #include "SpatialDiscretization2D.hpp"
 #include "TimeIntegrator.hpp"
@@ -54,6 +55,8 @@ class HeatPDE2D
             const int n_steps = static_cast<int>(std::floor((t_end - t_current_) / dt));
             int step_count = 0;
 
+            std::cout << "\nIntegrating from t = " << t_current_ << " to t = " << t_end << "...\n";
+
             for (int step_count = 0; step_count < n_steps; ++step_count)
             {
                 time_integrator_.step(spatial_discretization_, t_current_, u_current_);
@@ -77,6 +80,8 @@ class HeatPDE2D
             }
 
             t_current_ = t_end;
+
+            std::cout << "  -> Integration completed.\n\n";
         }
 };
 

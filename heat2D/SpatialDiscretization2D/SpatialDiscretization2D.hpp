@@ -12,6 +12,8 @@
 #include "BoundaryCondition.hpp"
 #include "Mesh2D.hpp"
 
+using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
+
 namespace spatial
 {
 
@@ -29,7 +31,7 @@ class SpatialDiscretization2D
         std::function<double (double, double)> alpha_;
 
         // Sparse matrix and tripletlist for assembly
-        Eigen::SparseMatrix<double, Eigen::RowMajor> matrix_;
+        SparseMatrixRM matrix_;
         std::vector<Eigen::Triplet<double>> tripletList;
         Eigen::VectorXd b_;
 
@@ -84,7 +86,7 @@ class SpatialDiscretization2D
         virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&, double) const = 0;
 
         // Getters
-        inline const Eigen::SparseMatrix<double, Eigen::RowMajor>& getMatrix() const {return matrix_;};
+        inline const SparseMatrixRM& getMatrix() const {return matrix_;};
         inline const Eigen::VectorXd& getVector() const {return b_;};
         inline const BoundaryCondition& getBoundaryCondition(DomainSide side) const {return *boundary_conditions_[sideToIndex(side)];}
         inline bool isSPD() const {return !hasNeumann;};

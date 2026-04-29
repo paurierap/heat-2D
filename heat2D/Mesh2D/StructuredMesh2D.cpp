@@ -1,7 +1,9 @@
-#include "StructuredMesh2D.hpp"
 
+#include <iostream>
 #include <optional>
 #include <stdexcept>
+
+#include "StructuredMesh2D.hpp"
 
 namespace spatial
 {
@@ -14,7 +16,11 @@ StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom, dou
     nx_ = nx;
     ny_ = ny;
 
+    std::cout << "\nCreating StructuredMesh2D with domain [" << left << ", " << right << "] x [" << bottom << ", " << top << "] and " << nx_ << " x " << ny_ << " nodes...\n";
+
     meshDomain();
+
+    std::cout << "  -> StructuredMesh2D created with " << nodes_.size() << " nodes (" << inner_nodes_.size() << " inner, " << boundary_nodes_.size() << " boundary).\n";
 };
 
 StructuredMesh2D::StructuredMesh2D(const Domain2D& domain, int nx, int ny) 
