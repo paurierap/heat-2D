@@ -202,7 +202,7 @@ SolutionWriter writer(output_filename);
 
 // Integrate solution and write on output_filename
 double tf = 4.0 * M_PI;
-int steps = 0;
+int step = 0;
 solver.integrate(tf, [&](double t, const Eigen::VectorXd& u)
 {
     // Write every 2 steps
