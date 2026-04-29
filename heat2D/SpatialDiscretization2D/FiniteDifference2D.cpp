@@ -1,7 +1,9 @@
 #include <Eigen/Sparse>
+#include <array>
 #include <functional>
 #include <iostream>
 #include <optional>
+#include <stdexcept>
 #include <vector>
 
 #include "FiniteDifference2D.hpp"
@@ -14,14 +16,15 @@ namespace spatial
 FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> alpha, const StructuredMesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source)
 : SpatialDiscretization2D(alpha, mesh, boundary_conditions, source), mesh_(mesh)
 {
-
-    // Precompute Dirichlet nodes structures
-    for (const auto& [side, BC] : boundary_conditions_)
+    // Precompute Dirichlet nodes and check if there are any Neumann BCs (helpful to determine if the Laplacian matrix is SPD)
+    for (int i = 0; i < boundary_conditions_.size(); ++i)
     {
+        const auto& BC = boundary_conditions_[i];
         if (BC->getType() == BoundaryConditionType::Dirichlet)
         {
-            for (int nodeID : mesh_.getBoundaries().at(side)) is_dirichlet_[nodeID] = true;
+            for (int nodeID : mesh_.getBoundary(i)) is_dirichlet_[nodeID] = true;
         }
+        else hasNeumann = true;
     }
 
     buildMappings();
@@ -36,7 +39,7 @@ FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> al
 // Create a mapping to reduce system size by omitting Dirichlet boundary conditions
 void FiniteDifference2D::buildMappings()
 {
-    const std::vector<Node2D>& nodes = mesh_.getNodes();
+   const std::vector<Node2D>& nodes = mesh_.getNodes();
     
     int free_index = 0;
     for (int i = 0; i < nodes.size(); ++i)
@@ -48,7 +51,7 @@ void FiniteDifference2D::buildMappings()
         global_to_local_[i] = free_index;
         local_to_global_.push_back(i);
         free_index++;
-    }
+    } 
 }
 
 void FiniteDifference2D::discretize()
@@ -145,7 +148,7 @@ void FiniteDifference2D::applyNeumannBoundaryCondition(const BoundaryNode2D& bou
     // u_{i,j}
     addDiagonalTerm(globalID);
 
-    std::vector<DomainSide> sides = boundary_node.sides_;
+    const auto& sides = boundary_node.sides_;
 
     // Get directions for the stencil
     DomainSide inward_normal = mesh_.getBoundaryNormalDirections(sides[0]).second; // Only inward
@@ -172,12 +175,7 @@ void FiniteDifference2D::applyNeumannBoundaryCondition(const BoundaryNode2D& bou
 void FiniteDifference2D::updateRHS(double t)
 {
     b_.setZero();
-    updateBoundaryConditions(t);
-    updateSource(t);
-}
-
-void FiniteDifference2D::updateBoundaryConditions(double t)
-{
+    
     // A boundary node can have 1 or 2 (corners) sides. If it belongs to a side with a Dirichlet BC, the node (and its row in A) is omitted. If it's a corner, a Dirichlet BC has preference over Neumann. If Neumann-Neumann, BCs are treated naturally.
     const std::vector<BoundaryNode2D>& boundary_nodes = mesh_.getBoundaryNodes();
     for (const auto& boundary_node : mesh_.getBoundaryNodes()) 
@@ -185,7 +183,15 @@ void FiniteDifference2D::updateBoundaryConditions(double t)
         if (is_dirichlet_[boundary_node.nodeID_]) updateDirichletBoundaryCondition(boundary_node, t);  
         else updateNeumannBoundaryCondition(boundary_node, t);
     }
-};
+
+    // Source term
+    const auto& nodes = mesh_.getNodes();
+    for (int globalID : local_to_global_)
+    {
+        int localID = global_to_local_[globalID];
+        b_[localID] += source_(nodes[globalID].x_, nodes[globalID].y_, t);
+    }
+}
 
 void FiniteDifference2D::updateDirichletBoundaryCondition(const BoundaryNode2D& boundary_node, double t)
 {
@@ -212,22 +218,22 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const BoundaryNode2D& 
         {
             case DomainSide::Left:
                 h = mesh_.getDx();
-                b_[neighbor_local] += alpha_(x - 0.5 * h, y) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                b_[neighbor_local] += alpha_(x - 0.5 * h, y) / (h * h) * getBoundaryCondition(side).f(x,y,t);
                 break;
 
             case DomainSide::Right:
                 h = mesh_.getDx();
-                b_[neighbor_local] += alpha_(x + 0.5 * h, y) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                b_[neighbor_local] += alpha_(x + 0.5 * h, y) / (h * h) * getBoundaryCondition(side).f(x,y,t);
                 break;
 
             case DomainSide::Bottom:
                 h = mesh_.getDy();
-                b_[neighbor_local] += alpha_(x, y - 0.5 * h) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                b_[neighbor_local] += alpha_(x, y - 0.5 * h) / (h * h) * getBoundaryCondition(side).f(x,y,t);
                 break;
 
             case DomainSide::Top:
                 h = mesh_.getDy();
-                b_[neighbor_local] += alpha_(x, y + 0.5 * h) / (h * h) * boundary_conditions_.at(side)->f(x,y,t);
+                b_[neighbor_local] += alpha_(x, y + 0.5 * h) / (h * h) * getBoundaryCondition(side).f(x,y,t);
                 break;
         }
     }
@@ -246,18 +252,7 @@ void FiniteDifference2D::updateNeumannBoundaryCondition(const BoundaryNode2D& bo
         if (side == DomainSide::Left || side == DomainSide::Right) h = mesh_.getDx();
         else h = mesh_.getDy();
 
-        b_[localID] += 2. * alpha_(x,y) / h * boundary_conditions_.at(side)->f(x,y,t);
-    }
-}
-
-void FiniteDifference2D::updateSource(double t)
-{
-    for (int globalID : local_to_global_)
-    {
-        int localID = global_to_local_[globalID];
-        const Node2D& node = mesh_.getNode(globalID);
-
-        b_[localID] += source_(node.x_, node.y_, t);
+        b_[localID] += 2. * alpha_(x,y) / h * getBoundaryCondition(side).f(x,y,t);
     }
 }
 
@@ -281,17 +276,18 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
         if (!is_dirichlet_[globalID]) solution[globalID] = reduced_solution[global_to_local_[globalID]];
     }
     
-    for (const auto& [side, BC] : boundary_conditions_)
+    for (int i = 0; i < boundary_conditions_.size(); ++i)
     {
+        const auto& BC = boundary_conditions_[i];
         if (BC->getType() == BoundaryConditionType::Dirichlet)
         {
-            for (int globalID : mesh_.getBoundaries().at(side))
+            for (int globalID : mesh_.getBoundary(i))
             {
                 BoundaryNode2D boundary_node = mesh_.getBoundaryNode(globalID);
                 double x = boundary_node.x_;
                 double y = boundary_node.y_;
 
-                solution[globalID] = boundary_conditions_.at(side)->f(x,y,t); 
+                solution[globalID] = BC->f(x,y,t);
             }
         }
     }
@@ -321,20 +317,18 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
 
     // Populate b_
     updateRHS();
-
-    // Check if there are any Neumann BCs
-    bool hasNeumann = std::any_of(boundary_conditions_.begin(), boundary_conditions_.end(),
-    [](const auto& pair){return pair.second->getType() == BoundaryConditionType::Neumann;});
-
+    
     // Direct LDL^T factorization (only if A is SPD)
     if (!hasNeumann)
     {
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
         ldlt.compute(-matrix_);
         if (ldlt.info() != Eigen::Success) throw std::runtime_error("LDLT factorization failed\n");
+        
         reduced_sol_ = ldlt.solve(b_);
         
-        if (ldlt.info() != Eigen::Success) throw std::runtime_error("LDLT solve failed\n");
+        Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
+        if (residual.norm() / b_.norm() > 1e-10) throw std::runtime_error("LDLT solve residual too large");
         
         std::cout << "\nSolving with LDL^T factorization was successful!\n";
     }
@@ -346,7 +340,9 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
         if (lu.info() != Eigen::Success) throw std::runtime_error("LU factorization failed\n");
         
         reduced_sol_ = lu.solve(b_);
-        if (lu.info() != Eigen::Success) throw std::runtime_error("LU solve failed\n");
+        
+        Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
+        if (residual.norm() / b_.norm() > 1e-10) throw std::runtime_error("LU solve residual too large");
 
         std::cout << "\nSolving with LU factorization was successful!\n";
     }

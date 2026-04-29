@@ -2,8 +2,8 @@
 #define FINITEDIFFERENCE2D_HPP
 
 #include <Eigen/Dense>
+#include <array>
 #include <functional>
-#include <unordered_map>
 
 #include "BoundaryCondition.hpp"
 #include "SpatialDiscretization2D.hpp"
@@ -33,11 +33,8 @@ class FiniteDifference2D: public SpatialDiscretization2D
         void applyNeumannBoundaryCondition(const BoundaryNode2D&);
 
         void updateRHS(double t=0.0) override;
-        void updateBoundaryConditions(double);
         void updateDirichletBoundaryCondition(const BoundaryNode2D&, double t);
         void updateNeumannBoundaryCondition(const BoundaryNode2D&, double t);
-
-        void updateSource(double);
 
         Eigen::VectorXd solveSteadyState() override;
         Eigen::VectorXd reduce(std::function<double (double, double)>) override;

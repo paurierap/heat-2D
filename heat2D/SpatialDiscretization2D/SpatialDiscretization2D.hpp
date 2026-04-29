@@ -1,6 +1,7 @@
 #ifndef SPATIALDISCRETIZATION2D_HPP
 #define SPATIALDISCRETIZATION2D_HPP
 
+#include <array>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <functional>
@@ -24,12 +25,11 @@ class SpatialDiscretization2D
         const Mesh2D& mesh_;
 
     protected:
-        BoundaryConditions boundary_conditions_;
         std::function<double (double, double, double)> source_;
         std::function<double (double, double)> alpha_;
 
         // Sparse matrix and tripletlist for assembly
-        Eigen::SparseMatrix<double> matrix_;
+        Eigen::SparseMatrix<double, Eigen::RowMajor> matrix_;
         std::vector<Eigen::Triplet<double>> tripletList;
         Eigen::VectorXd b_;
 
@@ -40,15 +40,34 @@ class SpatialDiscretization2D
         // Check if node has prescribed Dirichlet BCs
         std::vector<bool> is_dirichlet_;
 
+        // Store boundary conditions
+        std::array<std::shared_ptr<BoundaryCondition>, 4> boundary_conditions_;
+        bool hasNeumann = false;
+
     public:
         SpatialDiscretization2D(std::function<double (double, double)> alpha, const Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
-        : alpha_(alpha),
+        :
+        alpha_(alpha),
         mesh_(mesh), 
-        boundary_conditions_(boundary_conditions),
         source_(source),
         global_to_local_(mesh_.getNodes().size(), - 1),
         is_dirichlet_(mesh_.getNodes().size(), false) 
-        {};
+        {
+            // Convert boundary conditions from unordered_map to array for easier access. Check that all sides are present.
+            const std::array<DomainSide, 4> all_sides = {
+                DomainSide::Left, DomainSide::Right, DomainSide::Bottom, DomainSide::Top
+            };
+
+            for (DomainSide side : all_sides)
+            {
+                const auto it = boundary_conditions.find(side);
+                if (it == boundary_conditions.end())
+                {
+                    throw std::invalid_argument("Missing boundary condition for one or more domain sides.");
+                }
+                boundary_conditions_[sideToIndex(side)] = it->second;
+            }
+        };
 
         virtual ~SpatialDiscretization2D() = default;
 
@@ -65,8 +84,10 @@ class SpatialDiscretization2D
         virtual Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&, double) const = 0;
 
         // Getters
-        inline const Eigen::SparseMatrix<double>& getMatrix() const {return matrix_;};
+        inline const Eigen::SparseMatrix<double, Eigen::RowMajor>& getMatrix() const {return matrix_;};
         inline const Eigen::VectorXd& getVector() const {return b_;};
+        inline const BoundaryCondition& getBoundaryCondition(DomainSide side) const {return *boundary_conditions_[sideToIndex(side)];}
+        inline bool isSPD() const {return !hasNeumann;};
 };
 
 }; // namespace

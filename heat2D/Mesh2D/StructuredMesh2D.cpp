@@ -27,12 +27,12 @@ void StructuredMesh2D::meshDomain()
     nodes_.reserve(nx_ * ny_);
     inner_nodes_.reserve((nx_ - 2) * (ny_ - 2));
     boundary_nodes_.reserve(2 * (nx_ + ny_) - 4);
-    node_to_boundary_node.resize(nx_ * ny_, -1);
+    node_to_boundary_node_.resize(nx_ * ny_, -1);
 
-    boundaries_[DomainSide::Left].reserve(ny_);
-    boundaries_[DomainSide::Right].reserve(ny_);
-    boundaries_[DomainSide::Bottom].reserve(nx_);
-    boundaries_[DomainSide::Top].reserve(nx_);
+    boundaries_[sideToIndex(DomainSide::Left)].reserve(ny_);
+    boundaries_[sideToIndex(DomainSide::Right)].reserve(ny_);
+    boundaries_[sideToIndex(DomainSide::Bottom)].reserve(nx_);
+    boundaries_[sideToIndex(DomainSide::Top)].reserve(nx_);
 
     int boundary_node = 0;
     for (int row = 0; row < ny_; ++row)
@@ -48,29 +48,29 @@ void StructuredMesh2D::meshDomain()
 
             if (col == 0) 
             {
-                boundaries_[DomainSide::Left].push_back(nodeID);
+                boundaries_[sideToIndex(DomainSide::Left)].push_back(nodeID);
                 sides.push_back(DomainSide::Left);
             } 
             if (col == nx_ - 1) 
             {
-                boundaries_[DomainSide::Right].push_back(nodeID);
+                boundaries_[sideToIndex(DomainSide::Right)].push_back(nodeID);
                 sides.push_back(DomainSide::Right);
             } 
             if (row == 0) 
             {
-                boundaries_[DomainSide::Bottom].push_back(nodeID);
+                boundaries_[sideToIndex(DomainSide::Bottom)].push_back(nodeID);
                 sides.push_back(DomainSide::Bottom);
             } 
             if (row == ny_ - 1) 
             {
-                boundaries_[DomainSide::Top].push_back(nodeID);
+                boundaries_[sideToIndex(DomainSide::Top)].push_back(nodeID);
                 sides.push_back(DomainSide::Top);
             }
 
             if (sides.empty()) inner_nodes_.push_back(nodeID);
             else
             {
-                node_to_boundary_node[nodeID] = boundary_node;
+                node_to_boundary_node_[nodeID] = boundary_node;
                 boundary_node++;
                 boundary_nodes_.push_back(BoundaryNode2D{nodeID, x, y, sides});
             }

@@ -138,10 +138,11 @@ TEST_F(StructuredMesh2DTest, MeshGeneration)
 // =============================================================================
 TEST_F(StructuredMesh2DTest, BoundaryNodesAssignation)
 {
-    for (const auto& [side, nodes] : mesh.getBoundaries()) 
+    const std::array<std::vector<int>, 4>& boundaries = mesh.getBoundaries();
+    for (int i = 0; i < 4; ++i) 
     {
-        if (side == spatial::DomainSide::Left || side == spatial::DomainSide::Right) EXPECT_EQ(nodes.size(), ny);
-        else EXPECT_EQ(nodes.size(), nx);
+        if (i == sideToIndex(spatial::DomainSide::Left) || i == sideToIndex(spatial::DomainSide::Right)) EXPECT_EQ(boundaries[i].size(), ny);
+        else EXPECT_EQ(boundaries[i].size(), nx);
     }
 }
 
