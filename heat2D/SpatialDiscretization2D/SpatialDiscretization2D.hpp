@@ -14,7 +14,7 @@
 
 using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
-namespace spatial
+namespace mesh
 {
 
 // Pointer required for run-time polymorphism and to be used in different instances of the class

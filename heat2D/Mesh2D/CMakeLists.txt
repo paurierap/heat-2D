@@ -1,7 +1,7 @@
 # Make library:
 add_library(mesh
-  Mesh2D.cpp 
   StructuredMesh2D.cpp
+  #UnstructuredMesh2D.cpp
 )
 
 target_include_directories(mesh

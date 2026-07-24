@@ -3,7 +3,7 @@
 
 #include "BoundaryCondition.hpp"
 
-namespace spatial
+namespace mesh
 {
 
 class DirichletBoundaryCondition : public BoundaryCondition

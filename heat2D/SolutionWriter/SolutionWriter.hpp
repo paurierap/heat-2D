@@ -29,9 +29,9 @@ class SolutionWriter
         SolutionWriter(const SolutionWriter&) = delete;
         SolutionWriter& operator=(const SolutionWriter&) = delete;
 
-        void write(const spatial::Mesh2D& mesh, const Eigen::VectorXd& solution,  double t)
+        void write(const mesh::Mesh2D& mesh, const Eigen::VectorXd& solution,  double t)
         {
-            std::vector<spatial::Node2D> nodes = mesh.getNodes();
+            std::vector<mesh::Node2D> nodes = mesh.getNodes();
 
             for(const auto& node : nodes)
             {

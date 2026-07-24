@@ -9,7 +9,7 @@
 #include "SpatialDiscretization2D.hpp"
 #include "StructuredMesh2D.hpp"
 
-namespace spatial
+namespace mesh
 {
 
 class FiniteDifference2D: public SpatialDiscretization2D

@@ -9,8 +9,8 @@ class BoundaryConditionTest : public testing::Test
 {
     protected: 
         std::function<double(double, double, double)> f;
-        spatial::DirichletBoundaryCondition DirichletBC;
-        spatial::NeumannBoundaryCondition NeumannBC;
+        mesh::DirichletBoundaryCondition DirichletBC;
+        mesh::NeumannBoundaryCondition NeumannBC;
 
     BoundaryConditionTest() 
     : f([](double x, double y, double t){ return x - y; }), 
@@ -25,8 +25,8 @@ class BoundaryConditionTest : public testing::Test
 TEST_F(BoundaryConditionTest, Constructor) 
 {
     EXPECT_DOUBLE_EQ(DirichletBC.f(1,2,30), 3);
-    EXPECT_EQ(DirichletBC.getType(), spatial::BoundaryConditionType::Dirichlet);
+    EXPECT_EQ(DirichletBC.getType(), mesh::BoundaryConditionType::Dirichlet);
 
     EXPECT_DOUBLE_EQ(NeumannBC.f(1,2,1), -1);
-    EXPECT_EQ(NeumannBC.getType(), spatial::BoundaryConditionType::Neumann);
+    EXPECT_EQ(NeumannBC.getType(), mesh::BoundaryConditionType::Neumann);
 }

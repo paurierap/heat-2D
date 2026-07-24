@@ -15,7 +15,7 @@
 // =============================================================================
 // Helper: solves for the approximation and compares it with the exact solution
 // =============================================================================
-double solve_and_get_error(spatial::SpatialDiscretization2D& sd, const spatial::Mesh2D& mesh, std::function<double (double, double)> solution)
+double solve_and_get_error(mesh::SpatialDiscretization2D& sd, const mesh::Mesh2D& mesh, std::function<double (double, double)> solution)
 {
     sd.discretize();
 
@@ -35,23 +35,23 @@ double solve_and_get_error(spatial::SpatialDiscretization2D& sd, const spatial::
 TEST(FiniteDifference2D, LaplacianComponents) 
 {
     constexpr int nx = 4, ny = 5;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
 
     // Define BCs
-    spatial::BoundaryConditions bc;
+    mesh::BoundaryConditions bc;
     auto zeroBC = [](double, double, double){return 0.0;};
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = 
-    std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = 
+    std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Discretise PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     fd.discretize();
     const Eigen::SparseMatrix<double>& A = fd.getMatrix();
@@ -73,7 +73,7 @@ TEST(FiniteDifference2D, LaplacianComponents)
 TEST(FiniteDifference2D, LaplacianVanishes) 
 {
     constexpr int nx = 21, ny = 21;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
     
     // Define BCs
     auto leftBC = [](double x, double y, double t){return - y * y;};
@@ -81,11 +81,11 @@ TEST(FiniteDifference2D, LaplacianVanishes)
     auto bottomBC = [](double x, double y, double t){return x * x;};
     auto topBC = [](double x, double y, double t){return x * x - 1;};
 
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(leftBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(topBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(leftBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(rightBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(bottomBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(topBC);
     
     // Source term
     auto source = [](double, double, double){return 0.0;};
@@ -95,7 +95,7 @@ TEST(FiniteDifference2D, LaplacianVanishes)
 
     // Discretize PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     fd.discretize();
     fd.updateRHS();
 
@@ -133,18 +133,18 @@ TEST(FiniteDifference2D, LaplaceDirichletBCconvergence)
     constexpr int n_fine = 101;
     constexpr double Lx = 1, Ly = 1;
 
-    const spatial::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
-    const spatial::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
+    const mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
+    const mesh::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
 
     // Define BCs
     auto zeroBC = [](double x, double y, double t){return 0;};
     auto topBC = [&](double x, double y, double t){return std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);};
 
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(topBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(topBC);
     
     // Source term
     auto source = [](double, double, double){return 0.0;};
@@ -154,8 +154,8 @@ TEST(FiniteDifference2D, LaplaceDirichletBCconvergence)
 
     // Discretise PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+    mesh::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    mesh::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);
@@ -185,19 +185,19 @@ TEST(FiniteDifference2D, LaplaceMixedBCconvergence)
     constexpr int n_fine = 101;
     constexpr double Lx = 2.0, Ly = 3.0;
 
-    const spatial::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
-    const spatial::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
+    const mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
+    const mesh::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
 
     // Define BCs
     auto zeroBC = [](double, double, double){return 0.0;};
     auto bottomBC = [&](double x, double, double){return std::sin(M_PI * x /Lx);};
     auto topBC = [&](double x, double, double){return M_PI / Lx * std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);};
 
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::NeumannBoundaryCondition>(topBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(bottomBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::NeumannBoundaryCondition>(topBC);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
@@ -207,8 +207,8 @@ TEST(FiniteDifference2D, LaplaceMixedBCconvergence)
 
     // Discretise PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+    mesh::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    mesh::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);
@@ -228,22 +228,22 @@ TEST(FiniteDifference2D, LaplaceNullSpace)
 {
     constexpr int n = 101;                  
     constexpr double Lx = 2.0, Ly = 3.0;    
-    spatial::StructuredMesh2D mesh(0, Lx, 0, Ly, n, n);
+    mesh::StructuredMesh2D mesh(0, Lx, 0, Ly, n, n);
 
     // Define BCs
     auto zeroBC = [](double, double, double){return 0.0;};
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
 
     // Source term
     auto source = [](double, double, double){return 0.0;};
 
     // Discretise PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     fd.discretize();
 
     const Eigen::SparseMatrix<double>& A = fd.getMatrix();
@@ -269,18 +269,18 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
     constexpr int n_coarse = 51;
     constexpr int n_fine = 101;
 
-    const spatial::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
-    const spatial::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
+    const mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
+    const mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
 
     // Define BCs
     auto zeroBC = [](double, double, double){return 0.0;};
     auto rightBC = [](double, double y, double){return -2 * std::exp(-1) * std::sin(M_PI * y);};
 
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::NeumannBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::NeumannBoundaryCondition>(rightBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
 
     // Exact solution
     auto solution = [](double x, double y){return std::exp(- x * x) * std::sin(M_PI * y);};
@@ -290,8 +290,8 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
 
     // Discretize PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+    mesh::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    mesh::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
     double err_fine = solve_and_get_error(fd_fine, mesh_fine, solution);
@@ -317,10 +317,10 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
 TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
 {
     constexpr int nx = 101, ny = 51;
-    const spatial::StructuredMesh2D mesh(0, 2, 0, 1, nx, ny);
+    const mesh::StructuredMesh2D mesh(0, 2, 0, 1, nx, ny);
 
     // Define BCs
-    spatial::BoundaryConditions bc;
+    mesh::BoundaryConditions bc;
     auto zeroBC = [](double, double, double){return 0.0;};
     auto rightBC = [](double, double y, double)
     {
@@ -333,10 +333,10 @@ TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
         return x * std::sin(2 * x) / (s * s + 1);
     };
 
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(rightBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::NeumannBoundaryCondition>(topBC);
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(rightBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::NeumannBoundaryCondition>(topBC);
 
     // Exact solution
     auto exact = [](double x, double y)
@@ -355,7 +355,7 @@ TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
 
     // Discretize PDE
     auto alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     double err = solve_and_get_error(fd, mesh, exact);
 
@@ -376,16 +376,16 @@ TEST(FiniteDifference2D, PoissonVariableAlphaConvergence)
 {
     constexpr int n_coarse = 51, n_fine = 101;
 
-    const spatial::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
-    const spatial::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
+    const mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
+    const mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
 
     // Define BCs
     auto zero = [](double, double, double){ return 0.0; };
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left]   = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Right]  = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Top]    = std::make_shared<spatial::DirichletBoundaryCondition>(zero);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::DirichletBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::DirichletBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::DirichletBoundaryCondition>(zero);
 
     // Source term
     auto source = [](double x, double y, double)
@@ -401,8 +401,8 @@ TEST(FiniteDifference2D, PoissonVariableAlphaConvergence)
 
     // Discretize PDE
     auto alpha = [](double x, double){return 1.0 + x;};
-    spatial::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
-    spatial::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+    mesh::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    mesh::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
 
     // Verify expected convergence rate
     double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);

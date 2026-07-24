@@ -30,7 +30,7 @@ Eigen::VectorXd solve_and_get_solution(HeatPDE2D& solver, double t_end)
 // =============================================================================
 // Helper: compares approximation with exact solution
 // =============================================================================
-double solve_and_get_error(HeatPDE2D& solver, const spatial::Mesh2D& mesh, std::function<double (double, double, double)> solution, double t_end)
+double solve_and_get_error(HeatPDE2D& solver, const mesh::Mesh2D& mesh, std::function<double (double, double, double)> solution, double t_end)
 {
     Eigen::VectorXd sol = solve_and_get_solution(solver, t_end);
     Eigen::VectorXd exact(sol.size());
@@ -81,15 +81,15 @@ class DirichletBCTimeConvergence : public testing::Test
         std::function<double(double, double, double)> exact = [&](double x, double y, double t)
         {return std::exp(-2 * M_PI * M_PI * alpha_val * t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
 
-        spatial::BoundaryConditions bc;
+        mesh::BoundaryConditions bc;
 
         void SetUp() override
         {
             // BCs built in SetUp() since they use shared_ptr
-            bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-            bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-            bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-            bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+            bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+            bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+            bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+            bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
         }
 };
 
@@ -107,12 +107,12 @@ class DirichletBCTimeConvergence : public testing::Test
 TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
 {
     constexpr int n = 21;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    spatial::FiniteDifference2D EEfd_coarse(alpha, mesh, bc, source);
-    spatial::FiniteDifference2D EEfd_fine(alpha, mesh, bc, source);
-    spatial::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D EEfd_coarse(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D EEfd_fine(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.0002 / alpha_val;
@@ -144,11 +144,11 @@ TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
 TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
 {
     constexpr int n = 151;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
     
     // Discretise PDE
-    spatial::FiniteDifference2D IEfd_coarse(alpha, mesh, bc, source);
-    spatial::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D IEfd_coarse(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.01 / alpha_val;
@@ -178,11 +178,11 @@ TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
 TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 {
     constexpr int n = 151;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    spatial::FiniteDifference2D CNfd_coarse(alpha, mesh, bc, source);
-    spatial::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D CNfd_coarse(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.02 / alpha_val;
@@ -219,15 +219,15 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
     constexpr int n = 101;
     constexpr double alpha_val = 0.5 / (M_PI * M_PI);
     std::function<double(double, double)> alpha = [](double, double){return alpha_val;};
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){return 0.0;};
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
 
     // Source function
     auto source = [](double, double, double){return 0.0;};
@@ -244,7 +244,7 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
     };
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrator
     const double dt = 0.001 / alpha_val;
@@ -275,15 +275,15 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
 TEST(HeatPDE2D, CrankNicolsonWithSource)
 {
     constexpr int n = 101;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto dirichletBC = [](double, double, double){return 0;};
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left] = std::make_shared<spatial::DirichletBoundaryCondition>(dirichletBC);
-    bc[spatial::DomainSide::Right] = std::make_shared<spatial::DirichletBoundaryCondition>(dirichletBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(dirichletBC);
-    bc[spatial::DomainSide::Top] = std::make_shared<spatial::DirichletBoundaryCondition>(dirichletBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
+    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
+    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
 
     // Exact solution
     auto exact = [](double x, double y, double t) {return std::exp(-t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
@@ -296,7 +296,7 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
 
     // Discretize PDE
     std::function<double(double, double)> alpha = [](double, double){return 1.0;};
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     
     // Time integrator
     constexpr double dt = 0.01;
@@ -322,11 +322,11 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
 TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
 {
     constexpr int n = 51;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd_staged(alpha, mesh, bc, source);
-    spatial::FiniteDifference2D fd_direct(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd_staged(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd_direct(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt = 0.01 / alpha_val;
@@ -352,10 +352,10 @@ TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
 TEST_F(DirichletBCTimeConvergence, InvalidTendThrows)
 {
     constexpr int n = 51;
-    const spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt = 0.01 / alpha_val;

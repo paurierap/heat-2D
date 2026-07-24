@@ -40,17 +40,17 @@ Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-call
 
 ### Class hierarchy
 
-```HeatPDE2D``` takes care of solver functionality and incorporates both the spatial discretization and the time integration. It thus requires an instance of both ```spatial::SpatialDiscretization2D``` and ```temporal::TimeIntegrator```. These are abstract base classes designed to provide a skeleton for their respective application.
+```HeatPDE2D``` takes care of solver functionality and incorporates both the spatial discretization and the time integration. It thus requires an instance of both ```mesh::SpatialDiscretization2D``` and ```temporal::TimeIntegrator```. These are abstract base classes designed to provide a skeleton for their respective application.
 
 #### Spatial discretization
 
-```spatial::SpatialDiscretization2D``` represents the spatial discretization of the spatial term $\nabla\cdot(\alpha\nabla u)$ of the PDE in $\Omega$ and $\partial\Omega$. As such, it requires a mesh description (no *mesh-free* approaches), as well as boundary conditions, and the functions $\alpha$ and $f$. For the moment, the only implementation of this class is ```spatial::FiniteDifference2D```, which employs the finite difference method.
+```mesh::SpatialDiscretization2D``` represents the spatial discretization of the spatial term $\nabla\cdot(\alpha\nabla u)$ of the PDE in $\Omega$ and $\partial\Omega$. As such, it requires a mesh description (no *mesh-free* approaches), as well as boundary conditions, and the functions $\alpha$ and $f$. For the moment, the only implementation of this class is ```mesh::FiniteDifference2D```, which employs the finite difference method.
 
-Another abstract base class is represented in ```spatial::Mesh2D```, currently implemented by ```spatial::StructuredMesh2D``` (unstructured meshes are planned for the future). This can be instantiated by providing the utility ```struct Domain2D```, which defines the axis-aligned 2D rectangular domain $\Omega$ based on the coordinates of its sides: $x_l$, $x_r$, $y_b$ and $y_t$ (in this order); along with the number of desired nodes in each direction, $n_x$ and $n_y$.
+Another abstract base class is represented in ```mesh::Mesh2D```, currently implemented by ```mesh::StructuredMesh2D``` (unstructured meshes are planned for the future). This can be instantiated by providing the utility ```struct Domain2D```, which defines the axis-aligned 2D rectangular domain $\Omega$ based on the coordinates of its sides: $x_l$, $x_r$, $y_b$ and $y_t$ (in this order); along with the number of desired nodes in each direction, $n_x$ and $n_y$.
 
 Boundary conditions are specified as a map from ```DomainSide``` to an ```std::shared_ptr<BoundaryCondition>>```, supporting both ```DirichletBoundaryCondition``` and ```NeumannBoundaryCondition```. Each takes a ```std::function<double(double,double,double)>``` describing the boundary value as a function of position and time.
 
-Finally, ```spatial::SpatialDiscretization2D``` uses ```std::function<double(double,double,double)>``` to describe the source term $f$, and ```std::function<double(double,double)>``` for the diffusivity $\alpha$.
+Finally, ```mesh::SpatialDiscretization2D``` uses ```std::function<double(double,double,double)>``` to describe the source term $f$, and ```std::function<double(double,double)>``` for the diffusivity $\alpha$.
 
 Internally, the problem is discretized using all these constructs into an ```Eigen::SparseMatrix<double>```, which is built once for increased performance.
 
@@ -123,13 +123,13 @@ Two alternatives exist, using ```Domain2D``` or just directly the coordinates of
 
 int n = 101;
 double left = 0, right = 1, bottom = 0, top = 1;
-spatial::Domain2D Omega{0, 1, 0, 1};
+mesh::Domain2D Omega{0, 1, 0, 1};
 
 // From Domain2D
-const spatial::StructuredMesh2D mesh(Omega, n, n);
+const mesh::StructuredMesh2D mesh(Omega, n, n);
 
 // From side coordinates
-const spatial::StructuredMesh2D mesh(left, right, bottom, top, n, n);
+const mesh::StructuredMesh2D mesh(left, right, bottom, top, n, n);
 ```
 
 ### Spatial Discretization
@@ -143,11 +143,11 @@ First, the boundary conditions over $\partial\Omega$ need to be specified. Since
 
 auto zeroBC = [](double, double, double){return 0.0;};
 
-spatial::BoundaryConditions bc;
-bc[spatial::DomainSide::Left]   = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-bc[spatial::DomainSide::Right]  = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-bc[spatial::DomainSide::Top]    = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
+mesh::BoundaryConditions bc;
+bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
 ```
 
 In addition, we must define the diffusivity $\alpha(x,t)$ and source $f(x,y,t)$ terms:
@@ -175,7 +175,7 @@ Finally, a ```FiniteDifference2D``` object can be instantiated:
 #include "FiniteDifference2D.hpp"
 
 // Spatial discretization object
-spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
 ```
 
 ### Solving the heat equation

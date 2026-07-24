@@ -12,7 +12,7 @@
 class HeatPDE2D
 {
     private:
-        spatial::SpatialDiscretization2D& spatial_discretization_;
+        mesh::SpatialDiscretization2D& spatial_discretization_;
         temporal::TimeIntegrator& time_integrator_;
         
         // Initial condition
@@ -22,7 +22,7 @@ class HeatPDE2D
         Eigen::VectorXd u_current_;
 
     public:
-        HeatPDE2D(spatial::SpatialDiscretization2D& spatial_discretization, temporal::TimeIntegrator& time_integrator, double t_start, std::function<double (double, double)> u_start) 
+        HeatPDE2D(mesh::SpatialDiscretization2D& spatial_discretization, temporal::TimeIntegrator& time_integrator, double t_start, std::function<double (double, double)> u_start) 
         : spatial_discretization_(spatial_discretization),
         time_integrator_(time_integrator),
         u_start_(u_start),

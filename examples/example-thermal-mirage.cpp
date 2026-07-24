@@ -21,7 +21,7 @@
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
 void run(HeatPDE2D& solver,
-         const spatial::StructuredMesh2D& mesh,
+         const mesh::StructuredMesh2D& mesh,
          SolutionWriter& writer,
          double t_end,
          int    write_every = 1)
@@ -49,7 +49,7 @@ void example_thermal_mirage(const std::string& output_filename)
     constexpr double dt    = 0.01;
     constexpr double t_end = 5;
 
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){return 0.0;};
@@ -57,11 +57,11 @@ void example_thermal_mirage(const std::string& output_filename)
     {
         return 0.5 + 0.1 * std::sin(2 * M_PI * x + t) + 0.2 * std::sin(6 * M_PI * x - 2 * t);
     };
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left]   = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right]  = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(bottomBC);
-    bc[spatial::DomainSide::Top]    = std::make_shared<spatial::NeumannBoundaryCondition>(zeroBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(bottomBC);
+    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
 
     // Thermal diffusivity
     auto alpha = [](double, double y) 
@@ -79,7 +79,7 @@ void example_thermal_mirage(const std::string& output_filename)
     };
 
     // Set up the solver and writer
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     temporal::CrankNicolson     ti(dt);
     HeatPDE2D                   solver(fd, ti, 0.0, u0);
     SolutionWriter              writer(output_filename);

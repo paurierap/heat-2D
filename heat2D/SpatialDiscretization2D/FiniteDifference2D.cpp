@@ -10,7 +10,7 @@
 #include "NeumannBoundaryCondition.hpp"
 #include "StructuredMesh2D.hpp"
 
-namespace spatial
+namespace mesh
 {
 
 FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> alpha, const StructuredMesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source)

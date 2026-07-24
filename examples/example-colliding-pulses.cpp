@@ -20,7 +20,7 @@
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
 void run(HeatPDE2D& solver,
-         const spatial::StructuredMesh2D& mesh,
+         const mesh::StructuredMesh2D& mesh,
          SolutionWriter& writer,
          double t_end,
          int    write_every = 1)
@@ -45,15 +45,15 @@ void example_colliding_pulses()
     constexpr double dt    = 0.05;
     constexpr double t_end = 5.0;
 
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){ return 0.0; };
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left]   = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Right]  = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
-    bc[spatial::DomainSide::Top]    = std::make_shared<spatial::DirichletBoundaryCondition>(zeroBC);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
 
     // Thermal diffusivity
     auto alpha = [](double, double y){return 0.01 * std::exp(-25.0 * (y - 0.5)*(y - 0.5));};
@@ -72,7 +72,7 @@ void example_colliding_pulses()
     };
 
     // Set up the solver and writer
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     temporal::CrankNicolson     ti(dt);
     HeatPDE2D                   solver(fd, ti, 0.0, u0);
     SolutionWriter              writer("examples/colliding-pulses.csv");

@@ -43,7 +43,7 @@ class CrankNicolson : public TimeIntegrator
         : TimeIntegrator(timestep)
         {};
 
-        void setUp(const spatial::SpatialDiscretization2D& sd) override
+        void setUp(const mesh::SpatialDiscretization2D& sd) override
         {
             const SparseMatrixRM& A = sd.getMatrix();
             isMatrixSPD_ = sd.isSPD();
@@ -99,7 +99,7 @@ class CrankNicolson : public TimeIntegrator
             isInitialized_ = true;
         }
 
-        void step(spatial::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
+        void step(mesh::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
             if (u.size() != M_rhs_.cols()) throw std::invalid_argument("CrankNicolson::step: wrong u size");
 

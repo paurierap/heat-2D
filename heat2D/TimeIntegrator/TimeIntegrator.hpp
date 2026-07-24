@@ -24,10 +24,10 @@ class TimeIntegrator
         
         virtual ~TimeIntegrator() = default;
         
-        virtual void setUp(const spatial::SpatialDiscretization2D&) = 0;
+        virtual void setUp(const mesh::SpatialDiscretization2D&) = 0;
 
         // Advances u by one timestep for du/dt = A*u + b
-        virtual void step(spatial::SpatialDiscretization2D&, double, Eigen::VectorXd&) const = 0;
+        virtual void step(mesh::SpatialDiscretization2D&, double, Eigen::VectorXd&) const = 0;
         virtual std::unique_ptr<TimeIntegrator> cloneWithTimestep(double) const = 0;
 
         // Getters

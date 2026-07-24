@@ -17,9 +17,9 @@ class ExplicitEuler : public TimeIntegrator
         : TimeIntegrator(timestep)
         {};
         
-        void setUp(const spatial::SpatialDiscretization2D& sd) override {};
+        void setUp(const mesh::SpatialDiscretization2D& sd) override {};
 
-        void step(spatial::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
+        void step(mesh::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
             sd.updateRHS(t);
 

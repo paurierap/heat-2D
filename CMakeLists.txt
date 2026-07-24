@@ -22,7 +22,7 @@ enable_testing()
 include(GoogleTest)
 
 # Try to find Eigen
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 if(NOT TARGET Eigen3::Eigen)
   message(STATUS "Eigen not found system-wide; fetching with FetchContent")
@@ -31,7 +31,7 @@ if(NOT TARGET Eigen3::Eigen)
   FetchContent_Declare(
     eigen
     GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-    GIT_TAG 3.4.0
+    GIT_TAG 5.0.0
   )
   FetchContent_MakeAvailable(eigen)
 endif()

@@ -4,7 +4,7 @@
 #include <functional>
 #include <vector>
 
-namespace spatial
+namespace mesh
 {
 
 enum class BoundaryConditionType {Dirichlet, Neumann};

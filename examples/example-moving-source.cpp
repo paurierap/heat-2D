@@ -20,7 +20,7 @@
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
 void run(HeatPDE2D& solver,
-         const spatial::StructuredMesh2D& mesh,
+         const mesh::StructuredMesh2D& mesh,
          SolutionWriter& writer,
          double t_end,
          int    write_every = 1)
@@ -45,15 +45,15 @@ void example_moving_source(const std::string& output_filename)
     constexpr double dt    = 0.1;
     constexpr double t_end = 4.0 * M_PI; // Two full orbits
 
-    spatial::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+    mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
     auto zero = [](double, double, double){ return 0.0; };
-    spatial::BoundaryConditions bc;
-    bc[spatial::DomainSide::Left]   = std::make_shared<spatial::NeumannBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Right]  = std::make_shared<spatial::NeumannBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Bottom] = std::make_shared<spatial::NeumannBoundaryCondition>(zero);
-    bc[spatial::DomainSide::Top]    = std::make_shared<spatial::NeumannBoundaryCondition>(zero);
+    mesh::BoundaryConditions bc;
+    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
+    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
 
     // Thermal diffusivity
     auto alpha = [](double x, double y) 
@@ -74,7 +74,7 @@ void example_moving_source(const std::string& output_filename)
     auto u0 = [](double, double){return 0.0;};
 
     // Set up the solver and writer
-    spatial::FiniteDifference2D fd(alpha, mesh, bc, source);
+    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
     temporal::CrankNicolson     ti(dt);
     HeatPDE2D                   solver(fd, ti, 0.0, u0);
     SolutionWriter              writer(output_filename);
