@@ -2,25 +2,12 @@
 #define STRUCTUREDMESH_HPP
 
 #include <optional>
-
+#include <unordered_map>
+#include <string>
 #include "Mesh2D.hpp"
 
-namespace mesh
+namespace heat2d::mesh
 {
-
-enum class DomainSide {Left, Right, Bottom, Top};
-
-static constexpr int sideToIndex(DomainSide side)
-{
-    switch (side)
-    {
-        case DomainSide::Left: return 0;
-        case DomainSide::Right: return 1;
-        case DomainSide::Bottom: return 2;
-        case DomainSide::Top: return 3;
-        default: throw std::invalid_argument("Invalid DomainSide value.");
-    }
-}
 
 struct Domain2D
 {
@@ -32,6 +19,8 @@ struct Domain2D
 
 class StructuredMesh2D : public Mesh2D
 {
+    static const std::unordered_map<std::string, std::pair<int,int>> inward_directions_;
+
     private:
         Domain2D domain_;
         int nx_;
@@ -54,13 +43,13 @@ class StructuredMesh2D : public Mesh2D
         inline double getMeshSize() const override {return std::min(getDx(), getDy());};
         inline const Domain2D& getDomain() const {return domain_;};
         std::optional<int> getNodeID(int i, int j) const; // from grid indices i and j
-        std::optional<int> getNeighbor(int, DomainSide) const;
-        const std::pair<DomainSide, DomainSide> getBoundaryNormalDirections(DomainSide) const;
-        const std::pair<DomainSide, DomainSide> getBoundaryTangentialDirections(DomainSide) const;
-
+        std::optional<int> getNeighbor(int, const std::pair<int,int>&) const;
+        inline const std::pair<int,int>& getBoundaryInwardDirection(const std::string& tag) const {return inward_directions_.at(tag);};
+        
         // Specific helpers
         bool isCorner(int) const;
         double getElementArea(int elementID) const override;
+        
 };
 
 };// namespace

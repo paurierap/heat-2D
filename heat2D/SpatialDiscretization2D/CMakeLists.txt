@@ -1,15 +1,15 @@
 # Make library:
-add_library(spatial
+add_library(solver
   FiniteDifference2D.cpp
 )
 
-target_include_directories(spatial
+target_include_directories(solver
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
 )
 
-target_link_libraries(spatial
+target_link_libraries(solver
   PUBLIC
   mesh
   Eigen3::Eigen
@@ -23,7 +23,7 @@ add_executable(SpatialDiscretization2D_test
 
 target_link_libraries(SpatialDiscretization2D_test
   PUBLIC
-  spatial
+  solver
   GTest::gtest_main
 )
 

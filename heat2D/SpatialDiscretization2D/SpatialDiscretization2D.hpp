@@ -6,25 +6,25 @@
 #include <Eigen/Sparse>
 #include <functional>
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 #include "BoundaryCondition.hpp"
 #include "Mesh2D.hpp"
 
-using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
-
-namespace mesh
+namespace heat2d::solver
 {
 
 // Pointer required for run-time polymorphism and to be used in different instances of the class
-using BoundaryConditions = std::unordered_map<DomainSide, std::shared_ptr<BoundaryCondition>>;
+using BoundaryConditions = std::unordered_map<std::string, std::shared_ptr<bc::BoundaryCondition>>;
+using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
 class SpatialDiscretization2D
 {
     private: 
         // TODO: Study change from reference to mesh to using a shared_ptr or even removing mesh altogether.
-        const Mesh2D& mesh_;
+        const mesh::Mesh2D& mesh_;
 
     protected:
         std::function<double (double, double, double)> source_;
@@ -43,33 +43,18 @@ class SpatialDiscretization2D
         std::vector<bool> is_dirichlet_;
 
         // Store boundary conditions
-        std::array<std::shared_ptr<BoundaryCondition>, 4> boundary_conditions_;
-        bool hasNeumann = false;
+        BoundaryConditions boundary_conditions_;
 
     public:
-        SpatialDiscretization2D(std::function<double (double, double)> alpha, const Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
+        SpatialDiscretization2D(std::function<double (double, double)> alpha, const mesh::Mesh2D& mesh, BoundaryConditions boundary_conditions, std::function<double (double, double, double)> source) 
         :
         alpha_(alpha),
         mesh_(mesh), 
         source_(source),
         global_to_local_(mesh_.getNodes().size(), - 1),
-        is_dirichlet_(mesh_.getNodes().size(), false) 
-        {
-            // Convert boundary conditions from unordered_map to array for easier access. Check that all sides are present.
-            const std::array<DomainSide, 4> all_sides = {
-                DomainSide::Left, DomainSide::Right, DomainSide::Bottom, DomainSide::Top
-            };
-
-            for (DomainSide side : all_sides)
-            {
-                const auto it = boundary_conditions.find(side);
-                if (it == boundary_conditions.end())
-                {
-                    throw std::invalid_argument("Missing boundary condition for one or more domain sides.");
-                }
-                boundary_conditions_[sideToIndex(side)] = it->second;
-            }
-        };
+        is_dirichlet_(mesh_.getNodes().size(), false),
+        boundary_conditions_(boundary_conditions)
+        {};
 
         virtual ~SpatialDiscretization2D() = default;
 
@@ -88,8 +73,8 @@ class SpatialDiscretization2D
         // Getters
         inline const SparseMatrixRM& getMatrix() const {return matrix_;};
         inline const Eigen::VectorXd& getVector() const {return b_;};
-        inline const BoundaryCondition& getBoundaryCondition(DomainSide side) const {return *boundary_conditions_[sideToIndex(side)];}
-        inline bool isSPD() const {return !hasNeumann;};
+        inline const bc::BoundaryCondition& getBoundaryCondition(const std::string& tag) const {return *boundary_conditions_.at(tag);}
+        virtual bool isSPD() const = 0;
 };
 
 }; // namespace

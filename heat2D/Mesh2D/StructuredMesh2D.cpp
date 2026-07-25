@@ -5,13 +5,20 @@
 
 #include "StructuredMesh2D.hpp"
 
-namespace mesh
+namespace heat2d::mesh
 {
 
+const std::unordered_map<std::string, std::pair<int,int>> StructuredMesh2D::inward_directions_ = {
+    {"Left",   { 1,  0}},
+    {"Right",  {-1,  0}},
+    {"Bottom", { 0,  1}},
+    {"Top",    { 0, -1}}
+};
+    
 StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom, double top, int nx, int ny) 
 : Mesh2D()
 {
-     if (left >= right || bottom >= top) throw std::invalid_argument("Inconsistent geometrical constraints. The left (or bottom) side cannot be equal or larger than the right (or top) side.");
+    if (left >= right || bottom >= top) throw std::invalid_argument("Inconsistent geometrical constraints. The left (or bottom) side cannot be equal or larger than the right (or top) side.");
 
     domain_ = {left, right, bottom, top};
 
@@ -37,14 +44,13 @@ void StructuredMesh2D::meshDomain()
     nodes_.reserve(nx_ * ny_);
     inner_nodes_.reserve((nx_ - 2) * (ny_ - 2));
     boundary_nodes_.reserve(2 * (nx_ + ny_) - 4);
-    element_connectivity_.reserve((nx_ - 1) * (ny_ - 1) * 6);
-    element_offsets_.reserve((nx_ - 1) * (ny_ - 1) * 2);
     node_to_boundary_node_.resize(nx_ * ny_, -1);
-
     boundary_groups_["Left"].reserve(ny_);
     boundary_groups_["Right"].reserve(ny_);
     boundary_groups_["Bottom"].reserve(nx_);
     boundary_groups_["Top"].reserve(nx_);
+    element_connectivity_.reserve((nx_ - 1) * (ny_ - 1) * 6);
+    element_offsets_.reserve((nx_ - 1) * (ny_ - 1) * 2);
 
     int boundary_node = 0;
     element_offsets_.push_back(0);
@@ -118,29 +124,15 @@ std::optional<int> StructuredMesh2D::getNodeID(int i, int j) const
     return j * nx_ + i;
 };
 
-std::optional<int> StructuredMesh2D::getNeighbor(int nodeID, DomainSide side) const
+std::optional<int> StructuredMesh2D::getNeighbor(int nodeID, const std::pair<int,int>& direction) const
 {
-    switch (side)
-    {
-        case DomainSide::Left:
-            if (nodeID % nx_ == 0) return std::nullopt;
-            return nodeID - 1;
+    int di = direction.first;
+    int dj = direction.second;
+    int i = nodeID % nx_;
+    int j = nodeID / nx_;
 
-        case DomainSide::Right:
-            if ((nodeID + 1) % nx_ == 0) return std::nullopt;
-            return nodeID + 1;
-
-        case DomainSide::Bottom:
-            if ((nodeID - nx_) < 0) return std::nullopt;
-            return nodeID - nx_;
-
-        case DomainSide::Top:
-            if ((nodeID + nx_) > nx_ * ny_ - 1) return std::nullopt;
-            return nodeID + nx_;
-
-        default:
-            return std::nullopt;
-    }    
+    if (i + di < 0 || i + di >= nx_ || j + dj < 0 || j + dj >= ny_) return std::nullopt;
+    return (j + dj) * nx_ + (i + di);
 };
 
 bool StructuredMesh2D::isCorner(int nodeID) const 
@@ -151,31 +143,8 @@ bool StructuredMesh2D::isCorner(int nodeID) const
 double StructuredMesh2D::getElementArea(int elementID) const
 {
     if (elementID < 0 || elementID >= static_cast<int>(element_offsets_.size()) - 1) throw std::out_of_range("Invalid elementID.");
+
     return getDx() * getDy() * 0.5;
 }
-
-// First is outward direction, second is inward direction.
-const std::pair<DomainSide, DomainSide> StructuredMesh2D::getBoundaryNormalDirections(DomainSide side) const
-{
-    if (side == DomainSide::Left) return {DomainSide::Left, DomainSide::Right};
-    if (side == DomainSide::Right) return {DomainSide::Right, DomainSide::Left};
-    if (side == DomainSide::Bottom) return {DomainSide::Bottom, DomainSide::Top};
-    return {DomainSide::Top, DomainSide::Bottom};
-};
-
-/*
-Clock-wise direction using the side's outward normal: first is left direction, second is right direction. That is:
-    Left -> [Bottom, Top]
-    Right -> [Top, Bottom]
-    Bottom -> [Left, Right]
-    Top -> [Right, Left]
-*/
-const std::pair<DomainSide, DomainSide> StructuredMesh2D::getBoundaryTangentialDirections(DomainSide side) const
-{
-    if (side == DomainSide::Left) return getBoundaryNormalDirections(DomainSide::Bottom);
-    if (side == DomainSide::Right) return getBoundaryNormalDirections(DomainSide::Top);
-    if (side == DomainSide::Bottom) return getBoundaryNormalDirections(DomainSide::Left);
-    return getBoundaryNormalDirections(DomainSide::Right);
-};
 
 } // namespace

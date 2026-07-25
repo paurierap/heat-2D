@@ -9,6 +9,12 @@
 #include "Mesh2D.hpp"
 #include "StructuredMesh2D.hpp"
 
+#ifdef HEAT2D_HAS_GMSH
+#include "UnstructuredMesh2D.hpp"
+#endif
+
+using namespace heat2d::mesh;
+
 // =============================================================================
 // Fixture - Avoids repeated allocation
 // =============================================================================
@@ -17,8 +23,8 @@ class StructuredMesh2DTest : public testing::Test
     protected: 
         static constexpr int nx = 11, ny = 21;
         static constexpr double left = 0, right = 1, bottom = 0, top = 1;
-        std::vector<mesh::Node2D> nodes;
-        const mesh::StructuredMesh2D mesh{left,right,bottom,top,nx,ny};
+        std::vector<Node2D> nodes;
+        const StructuredMesh2D mesh{left,right,bottom,top,nx,ny};
 };
 
 // =============================================================================
@@ -26,8 +32,8 @@ class StructuredMesh2DTest : public testing::Test
 // =============================================================================
 TEST(StructuredMesh2D, InvalidDimensionsThrow) 
 {
-    EXPECT_THROW(mesh::StructuredMesh2D(0,1,0,-1,10,10), std::invalid_argument);
-    EXPECT_THROW(mesh::StructuredMesh2D(0,-1,0,1,10,10), std::invalid_argument);
+    EXPECT_THROW(StructuredMesh2D(0,1,0,-1,10,10), std::invalid_argument);
+    EXPECT_THROW(StructuredMesh2D(0,-1,0,1,10,10), std::invalid_argument);
 }
 
 // =============================================================================
@@ -35,8 +41,8 @@ TEST(StructuredMesh2D, InvalidDimensionsThrow)
 // =============================================================================
 TEST(StructuredMesh2D, InvalidNumberOfNodesThrow) 
 {
-    EXPECT_THROW(mesh::StructuredMesh2D(0,1,0,1,-10,10), std::invalid_argument);
-    EXPECT_THROW(mesh::StructuredMesh2D(0,1,0,1,10,-10), std::invalid_argument);
+    EXPECT_THROW(StructuredMesh2D(0,1,0,1,-10,10), std::invalid_argument);
+    EXPECT_THROW(StructuredMesh2D(0,1,0,1,10,-10), std::invalid_argument);
 }
 
 // =============================================================================
@@ -44,19 +50,19 @@ TEST(StructuredMesh2D, InvalidNumberOfNodesThrow)
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomainSides) 
 {
-    const mesh::StructuredMesh2D mesh(0,1,0,1,nx,ny);
+    const StructuredMesh2D mesh(0,1,0,1,nx,ny);
 
     EXPECT_DOUBLE_EQ(mesh.getDx(), 1. / (nx - 1));
     EXPECT_DOUBLE_EQ(mesh.getDy(), 1. / (ny - 1));
 }
 
 // =============================================================================
-// Test 4 - Check constructor using mesh::Domain struct
+// Test 4 - Check constructor using Domain struct
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomain) 
 {
-    const mesh::Domain2D domain{0, 1, 0, 1};
-    const mesh::StructuredMesh2D mesh(domain,nx,ny);
+    const Domain2D domain{0, 1, 0, 1};
+    const StructuredMesh2D mesh(domain,nx,ny);
 
     EXPECT_DOUBLE_EQ(mesh.getDx(), (domain.right_ - domain.left_) / (nx - 1));
     EXPECT_DOUBLE_EQ(mesh.getDy(), (domain.top_ - domain.bottom_) / (ny - 1));
@@ -100,7 +106,7 @@ TEST_F(StructuredMesh2DTest, NodeOutOfBounds)
 // =============================================================================
 TEST_F(StructuredMesh2DTest, CheckCorners)
 {
-    const std::vector<mesh::BoundaryNode2D>& t_corners = mesh.getBoundaryNodes();
+    const std::vector<BoundaryNode2D>& t_corners = mesh.getBoundaryNodes();
     std::unordered_set<int> corners{0, 10, 220, 230};
     
     for (auto node : t_corners)
@@ -279,7 +285,7 @@ TEST_F(StructuredMesh2DTest, BoundaryGroupsConsistentWithBoundaryNodes)
         {
             EXPECT_TRUE(mesh.isNodeBoundary(nodeID)) << "Node " << nodeID << " in group '" << tag << "' is not flagged as boundary";
 
-            const mesh::BoundaryNode2D& bn = mesh.getBoundaryNode(nodeID);
+            const BoundaryNode2D& bn = mesh.getBoundaryNode(nodeID);
             auto it = std::find(bn.tags_.begin(), bn.tags_.end(), tag);
             EXPECT_NE(it, bn.tags_.end())  << "Node " << nodeID << " missing tag '" << tag << "' in its BoundaryNode2D";
         }

@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace mesh
+namespace heat2d::mesh
 {
 
 struct Node2D
@@ -28,21 +28,21 @@ class Mesh2D
         // Contains all nodes; nodeID_ must match the index in this vector.
         std::vector<Node2D> nodes_;
 
+        // Contain IDs corresponding to inner nodes
+        std::vector<int> inner_nodes_;
+
         // Contains all boundary nodes
         std::vector<BoundaryNode2D> boundary_nodes_;
-
-        // Contains boundary nodes for each boundary group (tag)
-        std::unordered_map<std::string, std::vector<int>> boundary_groups_;
-
-        // Contains elements of the mesh
-        std::vector<int> element_connectivity_; 
-        std::vector<int> element_offsets_; 
 
         // Map ID from node to boundary node (-1 if inner node)
         std::vector<int> node_to_boundary_node_;
 
-        // Contain IDs corresponding to nodes
-        std::vector<int> inner_nodes_;
+        // Contains boundary nodes for each boundary group (tag)
+        std::unordered_map<std::string, std::vector<int>> boundary_groups_;
+
+        // Compressed Sparse Row (CSR) representation of elements in the mesh
+        std::vector<int> element_connectivity_; 
+        std::vector<int> element_offsets_; 
 
         virtual void meshDomain() = 0;
 
