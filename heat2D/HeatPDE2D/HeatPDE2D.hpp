@@ -9,11 +9,14 @@
 #include "SpatialDiscretization2D.hpp"
 #include "TimeIntegrator.hpp"
 
+namespace heat2d
+{
+
 class HeatPDE2D
 {
     private:
-        mesh::SpatialDiscretization2D& spatial_discretization_;
-        temporal::TimeIntegrator& time_integrator_;
+        solver::SpatialDiscretization2D& spatial_discretization_;
+        ode::TimeIntegrator& time_integrator_;
         
         // Initial condition
         std::function<double (double, double)> u_start_;
@@ -22,7 +25,7 @@ class HeatPDE2D
         Eigen::VectorXd u_current_;
 
     public:
-        HeatPDE2D(mesh::SpatialDiscretization2D& spatial_discretization, temporal::TimeIntegrator& time_integrator, double t_start, std::function<double (double, double)> u_start) 
+        HeatPDE2D(solver::SpatialDiscretization2D& spatial_discretization, ode::TimeIntegrator& time_integrator, double t_start, std::function<double (double, double)> u_start) 
         : spatial_discretization_(spatial_discretization),
         time_integrator_(time_integrator),
         u_start_(u_start),
@@ -69,7 +72,7 @@ class HeatPDE2D
             const double remainder = t_end - t_current_;
             if (remainder > 1e-10 * dt)
             {
-                std::unique_ptr<temporal::TimeIntegrator> tail = time_integrator_.cloneWithTimestep(remainder);
+                std::unique_ptr<ode::TimeIntegrator> tail = time_integrator_.cloneWithTimestep(remainder);
                 tail->setUp(spatial_discretization_);
                 tail->step(spatial_discretization_, t_current_, u_current_);
 
@@ -84,5 +87,7 @@ class HeatPDE2D
             std::cout << "  -> Integration completed.\n\n";
         }
 };
+
+} // namespace
 
 #endif // HEATPDE2D_HPP

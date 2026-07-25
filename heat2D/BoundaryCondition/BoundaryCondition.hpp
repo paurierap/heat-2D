@@ -4,7 +4,7 @@
 #include <functional>
 #include <vector>
 
-namespace mesh
+namespace heat2d::bc
 {
 
 enum class BoundaryConditionType {Dirichlet, Neumann};

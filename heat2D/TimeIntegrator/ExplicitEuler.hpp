@@ -7,7 +7,7 @@
 
 #include "TimeIntegrator.hpp"
 
-namespace temporal
+namespace heat2d::ode
 {
 
 class ExplicitEuler : public TimeIntegrator
@@ -17,9 +17,9 @@ class ExplicitEuler : public TimeIntegrator
         : TimeIntegrator(timestep)
         {};
         
-        void setUp(const mesh::SpatialDiscretization2D& sd) override {};
+        void setUp(const solver::SpatialDiscretization2D& sd) override {};
 
-        void step(mesh::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
+        void step(solver::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
             sd.updateRHS(t);
 

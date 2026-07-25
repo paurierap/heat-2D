@@ -17,6 +17,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+using namespace heat2d;
+
 // =============================================================================
 // Helper: solves the heat equation and returns the solution as a vectorised 
 //         Eigen::VectorXd
@@ -81,15 +83,15 @@ class DirichletBCTimeConvergence : public testing::Test
         std::function<double(double, double, double)> exact = [&](double x, double y, double t)
         {return std::exp(-2 * M_PI * M_PI * alpha_val * t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
 
-        mesh::BoundaryConditions bc;
+        solver::BoundaryConditions bc;
 
         void SetUp() override
         {
             // BCs built in SetUp() since they use shared_ptr
-            bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-            bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-            bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-            bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+            bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+            bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+            bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+            bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
         }
 };
 
@@ -110,15 +112,15 @@ TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    mesh::FiniteDifference2D EEfd_coarse(alpha, mesh, bc, source);
-    mesh::FiniteDifference2D EEfd_fine(alpha, mesh, bc, source);
-    mesh::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
+    solver::FiniteDifference2D EEfd_coarse(alpha, mesh, bc, source);
+    solver::FiniteDifference2D EEfd_fine(alpha, mesh, bc, source);
+    solver::FiniteDifference2D CNfd_ref(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.0002 / alpha_val;
     const double dt_fine = 0.0001 / alpha_val;
-    temporal::ExplicitEuler EEti_coarse(dt_coarse), EEti_fine(dt_fine);
-    temporal::CrankNicolson CNti_ref(1e-4);
+    ode::ExplicitEuler EEti_coarse(dt_coarse), EEti_fine(dt_fine);
+    ode::CrankNicolson CNti_ref(1e-4);
 
     HeatPDE2D EEsolver_coarse(EEfd_coarse, EEti_coarse, t_start, u0);
     HeatPDE2D EEsolver_fine(EEfd_fine, EEti_fine, t_start, u0);
@@ -147,13 +149,13 @@ TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
     
     // Discretise PDE
-    mesh::FiniteDifference2D IEfd_coarse(alpha, mesh, bc, source);
-    mesh::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
+    solver::FiniteDifference2D IEfd_coarse(alpha, mesh, bc, source);
+    solver::FiniteDifference2D IEfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.01 / alpha_val;
     const double dt_fine = 0.005 / alpha_val;
-    temporal::ImplicitEuler IEti_coarse(dt_coarse), IEti_fine(dt_fine);
+    ode::ImplicitEuler IEti_coarse(dt_coarse), IEti_fine(dt_fine);
 
     // Create solver object
     HeatPDE2D IEsolver_coarse(IEfd_coarse, IEti_coarse, t_start, u0);
@@ -181,13 +183,13 @@ TEST_F(DirichletBCTimeConvergence, CrankNicolson)
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    mesh::FiniteDifference2D CNfd_coarse(alpha, mesh, bc, source);
-    mesh::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
+    solver::FiniteDifference2D CNfd_coarse(alpha, mesh, bc, source);
+    solver::FiniteDifference2D CNfd_fine(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt_coarse = 0.02 / alpha_val;
     const double dt_fine = 0.01 / alpha_val;
-    temporal::CrankNicolson CNti_coarse(dt_coarse), CNti_fine(dt_fine);
+    ode::CrankNicolson CNti_coarse(dt_coarse), CNti_fine(dt_fine);
 
     // Create solver object
     HeatPDE2D CNsolver_coarse(CNfd_coarse, CNti_coarse, t_start, u0);
@@ -223,11 +225,11 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){return 0.0;};
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    solver::BoundaryConditions bc;
+    bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
 
     // Source function
     auto source = [](double, double, double){return 0.0;};
@@ -244,11 +246,11 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
     };
 
     // Discretise PDE
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrator
     const double dt = 0.001 / alpha_val;
-    temporal::CrankNicolson ti(dt);
+    ode::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, 0.0, u0);
@@ -279,11 +281,11 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
 
     // Boundary conditions
     auto dirichletBC = [](double, double, double){return 0;};
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
-    bc[mesh::DomainSide::Right] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
-    bc[mesh::DomainSide::Top] = std::make_shared<mesh::DirichletBoundaryCondition>(dirichletBC);
+    solver::BoundaryConditions bc;
+    bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(dirichletBC);
+    bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(dirichletBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(dirichletBC);
+    bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(dirichletBC);
 
     // Exact solution
     auto exact = [](double x, double y, double t) {return std::exp(-t) * std::sin(M_PI * x) * std::sin(M_PI * y);};
@@ -296,11 +298,11 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
 
     // Discretize PDE
     std::function<double(double, double)> alpha = [](double, double){return 1.0;};
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
     
     // Time integrator
     constexpr double dt = 0.01;
-    temporal::CrankNicolson ti(dt);
+    ode::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, 0.0, u0);
@@ -325,13 +327,13 @@ TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    mesh::FiniteDifference2D fd_staged(alpha, mesh, bc, source);
-    mesh::FiniteDifference2D fd_direct(alpha, mesh, bc, source);
+    solver::FiniteDifference2D fd_staged(alpha, mesh, bc, source);
+    solver::FiniteDifference2D fd_direct(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt = 0.01 / alpha_val;
-    temporal::CrankNicolson ti_staged(dt);
-    temporal::CrankNicolson ti_direct(dt);
+    ode::CrankNicolson ti_staged(dt);
+    ode::CrankNicolson ti_direct(dt);
 
     // Create solver object
     HeatPDE2D solver_staged(fd_staged, ti_staged, t_start, u0);
@@ -355,11 +357,11 @@ TEST_F(DirichletBCTimeConvergence, InvalidTendThrows)
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
 
     // Time integrators
     const double dt = 0.01 / alpha_val;
-    temporal::CrankNicolson ti(dt);
+    ode::CrankNicolson ti(dt);
 
     // Create solver object
     HeatPDE2D solver(fd, ti, t_start, u0);

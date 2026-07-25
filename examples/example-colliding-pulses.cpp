@@ -16,6 +16,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+using namespace heat2d;
+
 // =============================================================================
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
@@ -49,11 +51,11 @@ void example_colliding_pulses()
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){ return 0.0; };
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    solver::BoundaryConditions bc;
+    bc["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Top"]    = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
 
     // Thermal diffusivity
     auto alpha = [](double, double y){return 0.01 * std::exp(-25.0 * (y - 0.5)*(y - 0.5));};
@@ -72,10 +74,10 @@ void example_colliding_pulses()
     };
 
     // Set up the solver and writer
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
-    temporal::CrankNicolson     ti(dt);
-    HeatPDE2D                   solver(fd, ti, 0.0, u0);
-    SolutionWriter              writer("examples/colliding-pulses.csv");
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+    ode::CrankNicolson         ti(dt);
+    HeatPDE2D                  solver(fd, ti, 0.0, u0);
+    SolutionWriter             writer("examples/colliding-pulses.csv");
 
     // Run and write output every 2 steps (every 0.1 time units)
     run(solver, mesh, writer, t_end, 2);

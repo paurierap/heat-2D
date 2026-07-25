@@ -17,6 +17,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+using namespace heat2d;
+
 // =============================================================================
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
@@ -57,11 +59,12 @@ void example_thermal_mirage(const std::string& output_filename)
     {
         return 0.5 + 0.1 * std::sin(2 * M_PI * x + t) + 0.2 * std::sin(6 * M_PI * x - 2 * t);
     };
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(bottomBC);
-    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+
+    bc::BoundaryConditions bc;
+    bc["Left"]   = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
+    bc["Right"]  = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(bottomBC);
+    bc["Top"]    = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
 
     // Thermal diffusivity
     auto alpha = [](double, double y) 
@@ -73,16 +76,13 @@ void example_thermal_mirage(const std::string& output_filename)
     auto source = [](double, double, double){return 0.0;};
     
     // Initial condition
-    auto u0 = [](double x, double y) 
-    {
-        return 0;
-    };
+    auto u0 = [](double x, double y){return 0.0;};
 
     // Set up the solver and writer
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
-    temporal::CrankNicolson     ti(dt);
-    HeatPDE2D                   solver(fd, ti, 0.0, u0);
-    SolutionWriter              writer(output_filename);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+    ode::CrankNicolson         ti(dt);
+    HeatPDE2D                  solver(fd, ti, 0.0, u0);
+    SolutionWriter             writer(output_filename);
 
     // Run and write output every 10 steps (every 0.1 time units)
     run(solver, mesh, writer, t_end, 10);

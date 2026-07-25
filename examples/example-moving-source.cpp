@@ -16,6 +16,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+using namespace heat2d;
+
 // =============================================================================
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
@@ -49,11 +51,11 @@ void example_moving_source(const std::string& output_filename)
 
     // Boundary conditions
     auto zero = [](double, double, double){ return 0.0; };
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
-    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
-    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zero);
+    bc::BoundaryConditions bc;
+    bc["Left"]   = std::make_shared<bc::NeumannBoundaryCondition>(zero);
+    bc["Right"]  = std::make_shared<bc::NeumannBoundaryCondition>(zero);
+    bc["Bottom"] = std::make_shared<bc::NeumannBoundaryCondition>(zero);
+    bc["Top"]    = std::make_shared<bc::NeumannBoundaryCondition>(zero);
 
     // Thermal diffusivity
     auto alpha = [](double x, double y) 
@@ -74,10 +76,10 @@ void example_moving_source(const std::string& output_filename)
     auto u0 = [](double, double){return 0.0;};
 
     // Set up the solver and writer
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
-    temporal::CrankNicolson     ti(dt);
-    HeatPDE2D                   solver(fd, ti, 0.0, u0);
-    SolutionWriter              writer(output_filename);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+    ode::CrankNicolson         ti(dt);
+    HeatPDE2D                  solver(fd, ti, 0.0, u0);
+    SolutionWriter             writer(output_filename);
 
     // Run and write output every 2 steps (every 0.2 time units)
     run(solver, mesh, writer, t_end, 2);

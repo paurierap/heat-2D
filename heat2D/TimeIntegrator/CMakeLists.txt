@@ -1,7 +1,7 @@
 # Add header-only library
-add_library(temporal INTERFACE)
+add_library(ode INTERFACE)
 
-target_include_directories(temporal
+target_include_directories(ode
   INTERFACE 
   ${CMAKE_CURRENT_SOURCE_DIR}
 )

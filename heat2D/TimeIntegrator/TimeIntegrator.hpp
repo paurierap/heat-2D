@@ -7,8 +7,10 @@
 
 #include "SpatialDiscretization2D.hpp"
 
-namespace temporal
+namespace heat2d::ode
 {
+
+using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
 class TimeIntegrator
 {
@@ -24,10 +26,10 @@ class TimeIntegrator
         
         virtual ~TimeIntegrator() = default;
         
-        virtual void setUp(const mesh::SpatialDiscretization2D&) = 0;
+        virtual void setUp(const solver::SpatialDiscretization2D&) = 0;
 
         // Advances u by one timestep for du/dt = A*u + b
-        virtual void step(mesh::SpatialDiscretization2D&, double, Eigen::VectorXd&) const = 0;
+        virtual void step(solver::SpatialDiscretization2D&, double, Eigen::VectorXd&) const = 0;
         virtual std::unique_ptr<TimeIntegrator> cloneWithTimestep(double) const = 0;
 
         // Getters

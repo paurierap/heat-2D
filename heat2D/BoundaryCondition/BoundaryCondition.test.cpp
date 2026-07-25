@@ -5,12 +5,14 @@
 #include "DirichletBoundaryCondition.hpp"
 #include "NeumannBoundaryCondition.hpp"
 
+using namespace heat2d::bc;
+
 class BoundaryConditionTest : public testing::Test
 {
     protected: 
         std::function<double(double, double, double)> f;
-        mesh::DirichletBoundaryCondition DirichletBC;
-        mesh::NeumannBoundaryCondition NeumannBC;
+        DirichletBoundaryCondition DirichletBC;
+        NeumannBoundaryCondition NeumannBC;
 
     BoundaryConditionTest() 
     : f([](double x, double y, double t){ return x - y; }), 
@@ -25,8 +27,8 @@ class BoundaryConditionTest : public testing::Test
 TEST_F(BoundaryConditionTest, Constructor) 
 {
     EXPECT_DOUBLE_EQ(DirichletBC.f(1,2,30), 3);
-    EXPECT_EQ(DirichletBC.getType(), mesh::BoundaryConditionType::Dirichlet);
+    EXPECT_EQ(DirichletBC.getType(), BoundaryConditionType::Dirichlet);
 
     EXPECT_DOUBLE_EQ(NeumannBC.f(1,2,1), -1);
-    EXPECT_EQ(NeumannBC.getType(), mesh::BoundaryConditionType::Neumann);
+    EXPECT_EQ(NeumannBC.getType(), BoundaryConditionType::Neumann);
 }

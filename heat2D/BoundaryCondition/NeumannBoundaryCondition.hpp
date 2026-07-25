@@ -3,7 +3,7 @@
 
 #include "BoundaryCondition.hpp"
 
-namespace mesh
+namespace heat2d::bc
 {
 
 class NeumannBoundaryCondition : public BoundaryCondition

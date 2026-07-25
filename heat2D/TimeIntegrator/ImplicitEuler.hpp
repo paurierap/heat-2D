@@ -9,7 +9,7 @@
 
 #include "TimeIntegrator.hpp"
 
-namespace temporal
+namespace heat2d::ode
 {
 
 class ImplicitEuler : public TimeIntegrator
@@ -24,7 +24,7 @@ class ImplicitEuler : public TimeIntegrator
         : TimeIntegrator(timestep)
         {};
 
-        void setUp(const spatial::SpatialDiscretization2D& sd) override
+        void setUp(const solver::SpatialDiscretization2D& sd) override
         {
             const Eigen::SparseMatrix<double>& A = sd.getMatrix();
 
@@ -39,7 +39,7 @@ class ImplicitEuler : public TimeIntegrator
             isInitialized_ = true;
         }
 
-        void step(spatial::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
+        void step(solver::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
         {
             if (!isInitialized_) throw std::logic_error("\nStep function for Implicit Euler time integration was used before SetUp.\n");
 

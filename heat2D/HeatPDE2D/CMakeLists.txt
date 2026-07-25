@@ -10,8 +10,8 @@ target_include_directories(HeatPDE
 
 target_link_libraries(HeatPDE
   INTERFACE 
-  spatial 
-  temporal
+  solver 
+  ode
 )
 
 # Build HeatPDE test

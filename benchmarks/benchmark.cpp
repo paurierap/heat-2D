@@ -16,6 +16,8 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+using namespace heat2d;
+
 // =============================================================================
 // Benchmarking with a decaying Gaussian pulse
 // =============================================================================
@@ -30,11 +32,11 @@ void benchmark()
 
     // Boundary conditions
     auto zeroBC = [](double, double, double){ return 0.0; };
-    mesh::BoundaryConditions bc;
-    bc[mesh::DomainSide::Left]   = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Right]  = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
-    bc[mesh::DomainSide::Top]    = std::make_shared<mesh::DirichletBoundaryCondition>(zeroBC);
+    solver::BoundaryConditions bc;
+    bc["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Top"]    = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
 
     // Thermal diffusivity
     auto alpha = [](double, double y){return 0.01 * std::exp(-25.0 * (y - 0.5)*(y - 0.5));};
@@ -46,8 +48,8 @@ void benchmark()
     auto u0 = [](double x, double y){return std::exp(-80.0 * ((x - 0.25)*(x - 0.25) + (y - 0.25)*(y - 0.25)));};
 
     // Set up the solver and writer
-    mesh::FiniteDifference2D fd(alpha, mesh, bc, source);
-    temporal::CrankNicolson     ti(dt);
+    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+    ode::CrankNicolson         ti(dt);
 
     auto t0 = std::chrono::high_resolution_clock::now();
     fd.discretize();
@@ -80,8 +82,6 @@ void benchmark()
 int main()
 {
     std::cout << "Benchmarking decaying Gaussian pulse...\n";
-
-    //test_omp();
 
     benchmark();
 
