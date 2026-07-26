@@ -29,8 +29,8 @@ class FiniteDifference2D: public SpatialDiscretization2D
 
         void discretize() override;
 
-        void addDiagonalTerm(int);
-        void addOffDiagonalTerm(int, const std::pair<int, int>&, double = 1.0);
+        void addDiagonalTerm(std::size_t);
+        void addOffDiagonalTerm(std::size_t, const std::pair<int, int>&, double = 1.0);
         void applyLaplacian() override;
 
         void applyBoundaryConditions() override;

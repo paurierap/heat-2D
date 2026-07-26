@@ -23,8 +23,8 @@ class StructuredMesh2D : public Mesh2D
 
     private:
         Domain2D domain_;
-        int nx_;
-        int ny_;
+        std::size_t nx_;
+        std::size_t ny_;
 
     protected:
         void meshDomain() override;
@@ -32,23 +32,23 @@ class StructuredMesh2D : public Mesh2D
     public:
 
         // Constructors
-        StructuredMesh2D(double left, double right, double bottom, double top, int nx, int ny);
-        StructuredMesh2D(const Domain2D& domain, int nx, int ny);
+        StructuredMesh2D(double left, double right, double bottom, double top, std::size_t nx, std::size_t ny);
+        StructuredMesh2D(const Domain2D& domain, std::size_t nx, std::size_t ny);
         
         // Getters
-        inline int getNx() const {return nx_;};
-        inline int getNy() const {return ny_;};
+        inline std::size_t getNx() const {return nx_;};
+        inline std::size_t getNy() const {return ny_;};
         inline double getDx() const {return (domain_.right_ - domain_.left_) / (nx_ - 1);};
         inline double getDy() const {return (domain_.top_ - domain_.bottom_) / (ny_ - 1);};
         inline double getMeshSize() const override {return std::min(getDx(), getDy());};
         inline const Domain2D& getDomain() const {return domain_;};
-        std::optional<int> getNodeID(int i, int j) const; // from grid indices i and j
-        std::optional<int> getNeighbor(int, const std::pair<int,int>&) const;
+        std::optional<std::size_t> getNodeID(std::size_t i, std::size_t j) const; // from grid indices i and j
+        std::optional<std::size_t> getNeighbor(std::size_t, const std::pair<int,int>&) const;
         inline const std::pair<int,int>& getBoundaryInwardDirection(const std::string& tag) const {return inward_directions_.at(tag);};
-        
+
         // Specific helpers
-        bool isCorner(int) const;
-        double getElementArea(int elementID) const override;
+        bool isCorner(std::size_t) const;
+        double getElementArea(std::size_t elementID) const override;
         
 };
 

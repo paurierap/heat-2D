@@ -23,7 +23,7 @@ using namespace heat2d;
 // =============================================================================
 void benchmark()
 {
-    constexpr int    n        = 1001;
+    constexpr std::size_t::size_t    n        = 1001;
     constexpr int    n_steps  = 10;
     constexpr double dt       = 1e-4;
     double           t        = 0.0;

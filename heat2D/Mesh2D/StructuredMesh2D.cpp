@@ -15,7 +15,7 @@ const std::unordered_map<std::string, std::pair<int,int>> StructuredMesh2D::inwa
     {"Top",    { 0, -1}}
 };
     
-StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom, double top, int nx, int ny) 
+StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom, double top, std::size_t nx, std::size_t ny) 
 : Mesh2D()
 {
     if (left >= right || bottom >= top) throw std::invalid_argument("Inconsistent geometrical constraints. The left (or bottom) side cannot be equal or larger than the right (or top) side.");
@@ -34,7 +34,7 @@ StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom, dou
     std::cout << "  -> StructuredMesh2D created with " << nodes_.size() << " nodes (" << inner_nodes_.size() << " inner, " << boundary_nodes_.size() << " boundary).\n";
 };
 
-StructuredMesh2D::StructuredMesh2D(const Domain2D& domain, int nx, int ny) 
+StructuredMesh2D::StructuredMesh2D(const Domain2D& domain, std::size_t nx, std::size_t ny) 
 : StructuredMesh2D(domain.left_, domain.right_, domain.bottom_, domain.top_, nx, ny) {};
 
 void StructuredMesh2D::meshDomain()
@@ -44,7 +44,6 @@ void StructuredMesh2D::meshDomain()
     nodes_.reserve(nx_ * ny_);
     inner_nodes_.reserve((nx_ - 2) * (ny_ - 2));
     boundary_nodes_.reserve(2 * (nx_ + ny_) - 4);
-    node_to_boundary_node_.resize(nx_ * ny_, -1);
     boundary_groups_["Left"].reserve(ny_);
     boundary_groups_["Right"].reserve(ny_);
     boundary_groups_["Bottom"].reserve(nx_);
@@ -52,13 +51,13 @@ void StructuredMesh2D::meshDomain()
     element_connectivity_.reserve((nx_ - 1) * (ny_ - 1) * 6);
     element_offsets_.reserve((nx_ - 1) * (ny_ - 1) * 2);
 
-    int boundary_node = 0;
+    std::size_t boundary_node = 0;
     element_offsets_.push_back(0);
-    for (int row = 0; row < ny_; ++row)
+    for (std::size_t row = 0; row < ny_; ++row)
     {
-        for (int col = 0; col < nx_; ++col)
+        for (std::size_t col = 0; col < nx_; ++col)
         {
-            int nodeID = nx_ * row + col;
+            std::size_t nodeID = nx_ * row + col;
             double x = domain_.left_ + col * dx;
             double y = domain_.bottom_ + row * dy;
             nodes_.push_back(Node2D{nodeID, x, y});
@@ -70,12 +69,12 @@ void StructuredMesh2D::meshDomain()
                 element_connectivity_.push_back(nodeID);
                 element_connectivity_.push_back(nodeID + 1);
                 element_connectivity_.push_back(nodeID + nx_);
-                element_offsets_.push_back(static_cast<int>(element_connectivity_.size()));
+                element_offsets_.push_back(element_connectivity_.size());
 
                 element_connectivity_.push_back(nodeID + 1);
                 element_connectivity_.push_back(nodeID + nx_ + 1);
                 element_connectivity_.push_back(nodeID + nx_);
-                element_offsets_.push_back(static_cast<int>(element_connectivity_.size()));
+                element_offsets_.push_back(element_connectivity_.size());
             }
 
             if (col == 0) 
@@ -109,7 +108,7 @@ void StructuredMesh2D::meshDomain()
         }
     }
 
-    for (int i = 0; i < nodes_.size(); ++i)
+    for (std::size_t i = 0; i < nodes_.size(); ++i)
     {
         if (nodes_[i].nodeID_ != i)
         {
@@ -118,13 +117,13 @@ void StructuredMesh2D::meshDomain()
     }
 };
 
-std::optional<int> StructuredMesh2D::getNodeID(int i, int j) const
+std::optional<std::size_t> StructuredMesh2D::getNodeID(std::size_t i, std::size_t j) const
 {
     if (i < 0 || i >= nx_ || j < 0 || j >= ny_) return std::nullopt;
     return j * nx_ + i;
 };
 
-std::optional<int> StructuredMesh2D::getNeighbor(int nodeID, const std::pair<int,int>& direction) const
+std::optional<std::size_t> StructuredMesh2D::getNeighbor(std::size_t nodeID, const std::pair<int,int>& direction) const
 {
     int di = direction.first;
     int dj = direction.second;
@@ -132,17 +131,17 @@ std::optional<int> StructuredMesh2D::getNeighbor(int nodeID, const std::pair<int
     int j = nodeID / nx_;
 
     if (i + di < 0 || i + di >= nx_ || j + dj < 0 || j + dj >= ny_) return std::nullopt;
-    return (j + dj) * nx_ + (i + di);
+    return static_cast<std::size_t>(j + dj) * nx_ + static_cast<std::size_t>(i + di);
 };
 
-bool StructuredMesh2D::isCorner(int nodeID) const 
+bool StructuredMesh2D::isCorner(std::size_t nodeID) const 
 {
     return nodeID == 0 || nodeID == nx_ - 1 || nodeID == nx_ * (ny_ - 1) || nodeID == ny_ * nx_ - 1;
 }
 
-double StructuredMesh2D::getElementArea(int elementID) const
+double StructuredMesh2D::getElementArea(std::size_t elementID) const
 {
-    if (elementID < 0 || elementID >= static_cast<int>(element_offsets_.size()) - 1) throw std::out_of_range("Invalid elementID.");
+    if (elementID >= element_offsets_.size() - 1) throw std::out_of_range("Invalid elementID.");
 
     return getDx() * getDy() * 0.5;
 }

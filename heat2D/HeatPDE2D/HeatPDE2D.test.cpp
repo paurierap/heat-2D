@@ -108,7 +108,7 @@ class DirichletBCTimeConvergence : public testing::Test
 // =============================================================================
 TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
 {
-    constexpr int n = 21;
+    constexpr std::size_t n = 21;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
@@ -145,7 +145,7 @@ TEST_F(DirichletBCTimeConvergence, ExplicitEuler)
 // =============================================================================
 TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
 {
-    constexpr int n = 151;
+    constexpr std::size_t n = 151;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
     
     // Discretise PDE
@@ -179,7 +179,7 @@ TEST_F(DirichletBCTimeConvergence, ImplicitEuler)
 // =============================================================================
 TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 {
-    constexpr int n = 151;
+    constexpr std::size_t n = 151;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
@@ -218,7 +218,7 @@ TEST_F(DirichletBCTimeConvergence, CrankNicolson)
 // =============================================================================
 TEST(HeatPDE2D, CrankNicolsonExpectedError)
 {
-    constexpr int n = 101;
+    constexpr std::size_t n = 101;
     constexpr double alpha_val = 0.5 / (M_PI * M_PI);
     std::function<double(double, double)> alpha = [](double, double){return alpha_val;};
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
@@ -276,7 +276,7 @@ TEST(HeatPDE2D, CrankNicolsonExpectedError)
 // =============================================================================
 TEST(HeatPDE2D, CrankNicolsonWithSource)
 {
-    constexpr int n = 101;
+    constexpr std::size_t n = 101;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Boundary conditions
@@ -323,7 +323,7 @@ TEST(HeatPDE2D, CrankNicolsonWithSource)
 // =============================================================================
 TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
 {
-    constexpr int n = 51;
+    constexpr std::size_t n = 51;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE
@@ -353,7 +353,7 @@ TEST_F(DirichletBCTimeConvergence, IntegrateInStages)
 // =============================================================================
 TEST_F(DirichletBCTimeConvergence, InvalidTendThrows)
 {
-    constexpr int n = 51;
+    constexpr std::size_t n = 51;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
     // Discretise PDE

@@ -21,7 +21,7 @@ using namespace heat2d::mesh;
 class StructuredMesh2DTest : public testing::Test
 {
     protected: 
-        static constexpr int nx = 11, ny = 21;
+        static constexpr std::size_t nx = 11, ny = 21;
         static constexpr double left = 0, right = 1, bottom = 0, top = 1;
         std::vector<Node2D> nodes;
         const StructuredMesh2D mesh{left,right,bottom,top,nx,ny};
@@ -37,16 +37,7 @@ TEST(StructuredMesh2D, InvalidDimensionsThrow)
 }
 
 // =============================================================================
-// Test 2 - Check constructor from invalid (negative) number of nodes
-// =============================================================================
-TEST(StructuredMesh2D, InvalidNumberOfNodesThrow) 
-{
-    EXPECT_THROW(StructuredMesh2D(0,1,0,1,-10,10), std::invalid_argument);
-    EXPECT_THROW(StructuredMesh2D(0,1,0,1,10,-10), std::invalid_argument);
-}
-
-// =============================================================================
-// Test 3 - Check constructor
+// Test 2 - Check constructor
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomainSides) 
 {
@@ -57,7 +48,7 @@ TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomainSides)
 }
 
 // =============================================================================
-// Test 4 - Check constructor using Domain struct
+// Test 3 - Check constructor using Domain struct
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomain) 
 {
@@ -69,7 +60,7 @@ TEST_F(StructuredMesh2DTest, ConstructsMeshFromDomain)
 }
 
 // =============================================================================
-// Test 5 - Check dx & dy calculations
+// Test 4 - Check dx & dy calculations
 // =============================================================================
 TEST_F(StructuredMesh2DTest, DxDyCalculation) 
 {
@@ -78,7 +69,7 @@ TEST_F(StructuredMesh2DTest, DxDyCalculation)
 }
 
 // =============================================================================
-// Test 6 - Check appropriate counting of nodes
+// Test 5 - Check appropriate counting of nodes
 // =============================================================================
 TEST_F(StructuredMesh2DTest, NodeCounting)
 {
@@ -91,7 +82,7 @@ TEST_F(StructuredMesh2DTest, NodeCounting)
 }
 
 // =============================================================================
-// Test 7 - Check out of bounds nodes
+// Test 6 - Check out of bounds nodes
 // =============================================================================
 TEST_F(StructuredMesh2DTest, NodeOutOfBounds)
 {
@@ -102,12 +93,12 @@ TEST_F(StructuredMesh2DTest, NodeOutOfBounds)
 }
 
 // =============================================================================
-// Test 8 - Check isCorner() function
+// Test 7 - Check isCorner() function
 // =============================================================================
 TEST_F(StructuredMesh2DTest, CheckCorners)
 {
     const std::vector<BoundaryNode2D>& t_corners = mesh.getBoundaryNodes();
-    std::unordered_set<int> corners{0, 10, 220, 230};
+    std::unordered_set<std::size_t> corners{0, 10, 220, 230};
     
     for (auto node : t_corners)
     {
@@ -127,17 +118,17 @@ TEST_F(StructuredMesh2DTest, CheckCorners)
 }
 
 // =============================================================================
-// Test 9 - Check correct grid generation
+// Test 8 - Check correct grid generation
 // =============================================================================
 TEST_F(StructuredMesh2DTest, MeshGeneration)
 {
     double dx = mesh.getDx(), dy = mesh.getDy();
 
-    for (int row = 0; row < mesh.getNy(); ++row) 
+    for (std::size_t row = 0; row < mesh.getNy(); ++row) 
     {
-        for (int col = 0; col < mesh.getNx(); ++col) 
+        for (std::size_t col = 0; col < mesh.getNx(); ++col) 
         {
-            int nodeID = row * mesh.getNx() + col;
+            std::size_t nodeID = row * mesh.getNx() + col;
             EXPECT_NEAR(mesh.getNode(nodeID).x_, mesh.getDomain().left_ + col*dx, 1e-12);
             EXPECT_NEAR(mesh.getNode(nodeID).y_, mesh.getDomain().bottom_ + row*dy, 1e-12);
         }
@@ -145,14 +136,14 @@ TEST_F(StructuredMesh2DTest, MeshGeneration)
 }
 
 // =============================================================================
-// Test 10 - Check correct size of sides in getBoundary()
+// Test 9 - Check correct size of sides in getBoundary()
 // =============================================================================
 TEST_F(StructuredMesh2DTest, BoundaryNodesAssignation)
 {
-    const std::vector<int>& left_boundary = mesh.getBoundary("Left");
-    const std::vector<int>& right_boundary = mesh.getBoundary("Right");
-    const std::vector<int>& bottom_boundary = mesh.getBoundary("Bottom");
-    const std::vector<int>& top_boundary = mesh.getBoundary("Top");
+    const std::vector<std::size_t>& left_boundary = mesh.getBoundary("Left");
+    const std::vector<std::size_t>& right_boundary = mesh.getBoundary("Right");
+    const std::vector<std::size_t>& bottom_boundary = mesh.getBoundary("Bottom");
+    const std::vector<std::size_t>& top_boundary = mesh.getBoundary("Top");
 
     EXPECT_EQ(left_boundary.size(), ny);
     EXPECT_EQ(right_boundary.size(), ny);
@@ -161,12 +152,12 @@ TEST_F(StructuredMesh2DTest, BoundaryNodesAssignation)
 }
 
 // =============================================================================
-// Test 11 - Check that getInnerNodes() and getBoundaryNodes() return, 
+// Test 10 - Check that getInnerNodes() and getBoundaryNodes() return, 
 //           respectively, only inner and boundary nodes 
 // =============================================================================
 TEST_F(StructuredMesh2DTest, InnerBoundaryNodesSeparation)
 {
-    for (int nodeID : mesh.getInnerNodes()) 
+    for (std::size_t nodeID : mesh.getInnerNodes()) 
     {
         EXPECT_FALSE(mesh.isNodeBoundary(nodeID)) << "Node: " << nodeID << " is incorrectly classified as a boundary node.";
     }
@@ -178,26 +169,26 @@ TEST_F(StructuredMesh2DTest, InnerBoundaryNodesSeparation)
 }
 
 // =============================================================================
-// Test 12 - Check element count and node indices are valid 
+// Test 11 - Check element count and node indices are valid 
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementCountingAndNodeIndices)
 {
-    const std::vector<int>& element_connectivity = mesh.getElementConnectivity();
-    const std::vector<int>& element_offsets = mesh.getElementOffsets();
-    int numNodes = mesh.getNodes().size();
-    int numElements = mesh.getNumElements();
+    const std::vector<std::size_t>& element_connectivity = mesh.getElementConnectivity();
+    const std::vector<std::size_t>& element_offsets = mesh.getElementOffsets();
+    std::size_t numNodes = mesh.getNodes().size();
+    std::size_t numElements = mesh.getNumElements();
 
-    EXPECT_EQ(static_cast<int>(element_offsets.size()) - 1, (nx - 1) * (ny - 1) * 2); 
+    EXPECT_EQ(element_offsets.size() - 1, (nx - 1) * (ny - 1) * 2); 
 
-    for (int i = 0; i < numElements; ++i) 
+    for (std::size_t i = 0; i < numElements; ++i) 
     {
-        int start = element_offsets[i];
-        int end = element_offsets[i + 1];
+        std::size_t start = element_offsets[i];
+        std::size_t end = element_offsets[i + 1];
         EXPECT_EQ(end - start, 3) << "Element " << i << " does not have 3 nodes.";
         
-        for (int j = start; j < end; ++j) 
+        for (std::size_t j = start; j < end; ++j) 
         {
-            int nodeID = element_connectivity[j];
+            std::size_t nodeID = element_connectivity[j];
             EXPECT_GE(nodeID, 0) << "Element " << i << " has invalid node index: " << nodeID;
             EXPECT_LT(nodeID, numNodes) << "Element " << i << " has invalid node index: " << nodeID;
         }
@@ -205,23 +196,23 @@ TEST_F(StructuredMesh2DTest, ElementCountingAndNodeIndices)
 }
 
 // =============================================================================
-// Test 13 - Check that all element node indices are distinct
+// Test 12 - Check that all element node indices are distinct
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementNodesAreDistinct)
 {
-    const std::vector<int>& element_connectivity = mesh.getElementConnectivity();
-    const std::vector<int>& element_offsets = mesh.getElementOffsets();
-    int numElements = mesh.getNumElements();
+    const std::vector<std::size_t>& element_connectivity = mesh.getElementConnectivity();
+    const std::vector<std::size_t>& element_offsets = mesh.getElementOffsets();
+    std::size_t numElements = mesh.getNumElements();
 
-    for (int i = 0; i < numElements; ++i) 
+    for (std::size_t i = 0; i < numElements; ++i) 
     {
-        int start = element_offsets[i];
-        int end = element_offsets[i + 1];
+        std::size_t start = element_offsets[i];
+        std::size_t end = element_offsets[i + 1];
 
-        std::unordered_set<int> seen;
-        for (int j = 0; j < end - start; ++j)
+        std::unordered_set<std::size_t> seen;
+        for (std::size_t j = 0; j < end - start; ++j)
         {
-            int nodeID = element_connectivity[start + j];
+            std::size_t nodeID = element_connectivity[start + j];
             EXPECT_FALSE(seen.count(nodeID)) << "Element " << i << " has duplicate node: " << nodeID;
             seen.insert(nodeID);
         }
@@ -229,14 +220,14 @@ TEST_F(StructuredMesh2DTest, ElementNodesAreDistinct)
 }
 
 // =============================================================================
-// Test 14 - Check element areas are positive and sum to domain area
+// Test 13 - Check element areas are positive and sum to domain area
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea)
 {
     double totalArea = 0.0;
-    int numElements = mesh.getNumElements();
+    std::size_t numElements = mesh.getNumElements();
 
-    for (int i = 0; i < numElements; ++i)
+    for (std::size_t i = 0; i < numElements; ++i)
     {
         double area = mesh.getElementArea(i);
 
@@ -249,39 +240,39 @@ TEST_F(StructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea)
 }
 
 // =============================================================================
-// Test 15 - Check that every node belongs to at least one element
+// Test 14 - Check that every node belongs to at least one element
 // =============================================================================
 TEST_F(StructuredMesh2DTest, AllNodesCoveredByElements)
 {
-    const std::vector<int>& element_connectivity = mesh.getElementConnectivity();
-    const std::vector<int>& element_offsets = mesh.getElementOffsets();
-    int numNodes = mesh.getNodes().size();
-    int numElements = mesh.getNumElements();
+    const std::vector<std::size_t>& element_connectivity = mesh.getElementConnectivity();
+    const std::vector<std::size_t>& element_offsets = mesh.getElementOffsets();
+    std::size_t numNodes = mesh.getNodes().size();
+    std::size_t numElements = mesh.getNumElements();
     std::vector<bool> seen(numNodes, false);
 
-    for (int i = 0; i < numElements; ++i)
+    for (std::size_t i = 0; i < numElements; ++i)
     {
-        int start = element_offsets[i];
-        int end = element_offsets[i + 1];
+        std::size_t start = element_offsets[i];
+        std::size_t end = element_offsets[i + 1];
 
-        for (int j = start; j < end; ++j)
+        for (std::size_t j = start; j < end; ++j)
         {
-            int nodeID = element_connectivity[j];
+            std::size_t nodeID = element_connectivity[j];
             seen[nodeID] = true;
         }
     }
         
-    for (int i = 0; i < numNodes; ++i) EXPECT_TRUE(seen[i]) << "Node " << i << " belongs to no element";
+    for (std::size_t i = 0; i < numNodes; ++i) EXPECT_TRUE(seen[i]) << "Node " << i << " belongs to no element";
 }
 
 // =============================================================================
-// Test 16 - Check that boundary groups are consistent with boundary nodes
+// Test 15 - Check that boundary groups are consistent with boundary nodes
 // =============================================================================
 TEST_F(StructuredMesh2DTest, BoundaryGroupsConsistentWithBoundaryNodes)
 {
     for (const auto& [tag, nodeIDs] : mesh.getBoundaryGroups())
     {
-        for (int nodeID : nodeIDs)
+        for (std::size_t nodeID : nodeIDs)
         {
             EXPECT_TRUE(mesh.isNodeBoundary(nodeID)) << "Node " << nodeID << " in group '" << tag << "' is not flagged as boundary";
 

@@ -43,7 +43,7 @@ void run(HeatPDE2D& solver,
 // =============================================================================
 void example_colliding_pulses()
 {
-    constexpr int    n     = 101;
+    constexpr std::size_t    n     = 101;
     constexpr double dt    = 0.05;
     constexpr double t_end = 5.0;
 

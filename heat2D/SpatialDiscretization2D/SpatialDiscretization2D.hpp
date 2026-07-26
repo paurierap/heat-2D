@@ -36,8 +36,8 @@ class SpatialDiscretization2D
         Eigen::VectorXd b_;
 
         // Mappings for nodes in the local, reduced space (Dirichlet nodes are removed)
-        std::vector<int> local_to_global_;
-        std::vector<int> global_to_local_;
+        std::vector<std::size_t> local_to_global_;
+        std::vector<std::size_t> global_to_local_;
 
         // Check if node has prescribed Dirichlet BCs
         std::vector<bool> is_dirichlet_;

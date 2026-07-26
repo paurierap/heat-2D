@@ -43,7 +43,7 @@ void run(HeatPDE2D& solver,
 // =============================================================================
 void example_moving_source(const std::string& output_filename)
 {
-    constexpr int    n     = 101;
+    constexpr std::size_t    n     = 101;
     constexpr double dt    = 0.1;
     constexpr double t_end = 4.0 * M_PI; // Two full orbits
 

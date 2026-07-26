@@ -24,7 +24,7 @@ double solve_and_get_error(solver::SpatialDiscretization2D& sd, const mesh::Mesh
     Eigen::VectorXd sol = sd.solveSteadyState();
     Eigen::VectorXd exact(sol.size());
 
-    int j = 0;
+    std::size_t j = 0;
     for (const auto& node : mesh.getNodes()) exact[j++] = solution(node.x_, node.y_);
 
     return (exact - sol).lpNorm<Eigen::Infinity>();
@@ -36,7 +36,7 @@ double solve_and_get_error(solver::SpatialDiscretization2D& sd, const mesh::Mesh
 // =============================================================================
 TEST(FiniteDifference2D, LaplacianComponents) 
 {
-    constexpr int nx = 4, ny = 5;
+    constexpr std::size_t nx = 4, ny = 5;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
 
     // Define BCs
@@ -73,7 +73,7 @@ TEST(FiniteDifference2D, LaplacianComponents)
 // =============================================================================
 TEST(FiniteDifference2D, LaplacianVanishes) 
 {
-    constexpr int nx = 21, ny = 21;
+    constexpr std::size_t nx = 21, ny = 21;
     const mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
     
     // Define BCs
@@ -108,9 +108,9 @@ TEST(FiniteDifference2D, LaplacianVanishes)
     ASSERT_EQ(A.cols(), mesh.getInnerNodes().size());
     ASSERT_EQ(b.size(), A.rows());
 
-    int j = 0;
+    std::size_t j = 0;
     auto nodes = mesh.getNodes();
-    for (int nodeID : mesh.getInnerNodes()) exact[j++] = solution(nodes[nodeID].x_, nodes[nodeID].y_);
+    for (std::size_t nodeID : mesh.getInnerNodes()) exact[j++] = solution(nodes[nodeID].x_, nodes[nodeID].y_);
 
     // Discrete residual should vanish up to roundoff
     Eigen::VectorXd res = A * exact + b;
@@ -130,8 +130,8 @@ TEST(FiniteDifference2D, LaplacianVanishes)
 // =============================================================================
 TEST(FiniteDifference2D, LaplaceDirichletBCconvergence) 
 {
-    constexpr int n_coarse = 51; 
-    constexpr int n_fine = 101;
+    constexpr std::size_t n_coarse = 51; 
+    constexpr std::size_t n_fine = 101;
     constexpr double Lx = 1, Ly = 1;
 
     const mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
@@ -182,8 +182,8 @@ TEST(FiniteDifference2D, LaplaceDirichletBCconvergence)
 // =============================================================================
 TEST(FiniteDifference2D, LaplaceMixedBCconvergence)
 {
-    constexpr int n_coarse = 51;
-    constexpr int n_fine = 101;
+    constexpr std::size_t n_coarse = 51;
+    constexpr std::size_t n_fine = 101;
     constexpr double Lx = 2.0, Ly = 3.0;
 
     const mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
@@ -227,7 +227,7 @@ TEST(FiniteDifference2D, LaplaceMixedBCconvergence)
 // =============================================================================
 TEST(FiniteDifference2D, LaplaceNullSpace)
 {
-    constexpr int n = 101;                  
+    constexpr std::size_t n = 101;                  
     constexpr double Lx = 2.0, Ly = 3.0;    
     mesh::StructuredMesh2D mesh(0, Lx, 0, Ly, n, n);
 
@@ -267,8 +267,8 @@ TEST(FiniteDifference2D, LaplaceNullSpace)
 // =============================================================================
 TEST(FiniteDifference2D, PoissonMixedBCconvergence)
 {
-    constexpr int n_coarse = 51;
-    constexpr int n_fine = 101;
+    constexpr std::size_t n_coarse = 51;
+    constexpr std::size_t n_fine = 101;
 
     const mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
     const mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
@@ -317,7 +317,7 @@ TEST(FiniteDifference2D, PoissonMixedBCconvergence)
 // =============================================================================
 TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
 {
-    constexpr int nx = 101, ny = 51;
+    constexpr std::size_t nx = 101, ny = 51;
     const mesh::StructuredMesh2D mesh(0, 2, 0, 1, nx, ny);
 
     // Define BCs
@@ -375,7 +375,7 @@ TEST(FiniteDifference2D, PoissonMixedBCAnisotropicGrid)
 // =============================================================================
 TEST(FiniteDifference2D, PoissonVariableAlphaConvergence)
 {
-    constexpr int n_coarse = 51, n_fine = 101;
+    constexpr std::size_t n_coarse = 51, n_fine = 101;
 
     const mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse, n_coarse);
     const mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);

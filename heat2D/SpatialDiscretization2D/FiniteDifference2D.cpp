@@ -21,7 +21,7 @@ FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> al
     {
         if (BC->getType() == bc::BoundaryConditionType::Dirichlet)
         {
-            for (int nodeID : mesh_.getBoundary(tag)) is_dirichlet_[nodeID] = true;
+            for (std::size_t nodeID : mesh_.getBoundary(tag)) is_dirichlet_[nodeID] = true;
         }
         else hasNeumann = true;
     }
@@ -29,7 +29,7 @@ FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> al
     buildMappings();
 
     // Resize arrays for reduced space
-    int local_space_size = local_to_global_.size();
+    std::size_t local_space_size = local_to_global_.size();
     tripletList.reserve(5 * local_space_size);
     matrix_.resize(local_space_size, local_space_size);
     b_.resize(local_space_size);
@@ -40,10 +40,10 @@ void FiniteDifference2D::buildMappings()
 {
    const std::vector<mesh::Node2D>& nodes = mesh_.getNodes();
     
-    int free_index = 0;
+    std::size_t free_index = 0;
     for (const auto& node : nodes)
     {
-        int globalID = node.nodeID_;
+        std::size_t globalID = node.nodeID_;
 
         if (is_dirichlet_[globalID]) continue;
 
@@ -65,9 +65,9 @@ void FiniteDifference2D::discretize()
 }
 
 // Diagonal contribution to u_{i,j}
-void FiniteDifference2D::addDiagonalTerm(int nodeID)
+void FiniteDifference2D::addDiagonalTerm(std::size_t nodeID)
 {
-    int localID = global_to_local_[nodeID];
+    std::size_t localID = global_to_local_[nodeID];
     double x = mesh_.getNode(nodeID).x_;
     double y = mesh_.getNode(nodeID).y_;
     double dx = mesh_.getDx();
@@ -77,10 +77,10 @@ void FiniteDifference2D::addDiagonalTerm(int nodeID)
 }
 
 // Off diagonal contributions (multiplier parameter, defaulted to 1.0, included in case there is a contribution from Neumann BCs)
-void FiniteDifference2D::addOffDiagonalTerm(int nodeID, const std::pair<int, int>& direction, double multiplier)
+void FiniteDifference2D::addOffDiagonalTerm(std::size_t nodeID, const std::pair<int, int>& direction, double multiplier)
 {
     auto [dirx, diry] = direction;
-    std::optional<int> neighbor = mesh_.getNeighbor(nodeID, direction);
+    std::optional<std::size_t> neighbor = mesh_.getNeighbor(nodeID, direction);
 
     // Check if neighbor exists (in case of boundary nodes)
     if (!neighbor) return;
@@ -88,8 +88,8 @@ void FiniteDifference2D::addOffDiagonalTerm(int nodeID, const std::pair<int, int
     // Check if neighbor has prescribed Dirichlet BCs
     if (is_dirichlet_[*neighbor]) return;
 
-    int localID = global_to_local_[nodeID];
-    int neighbor_local = global_to_local_[*neighbor];
+    std::size_t localID = global_to_local_[nodeID];
+    std::size_t neighbor_local = global_to_local_[*neighbor];
 
     // Get coordinates of the node to evaluate alpha at the midpoint of the stencil
     double x = mesh_.getNode(nodeID).x_;
@@ -111,7 +111,7 @@ void FiniteDifference2D::addOffDiagonalTerm(int nodeID, const std::pair<int, int
 // Second order discretization approximation is applied to the inner nodes. If an inner node has a Dirichlet boundary node, this is later treated when applying boundary conditions.
 void FiniteDifference2D::applyLaplacian()
 {
-    for (int globalID : mesh_.getInnerNodes())
+    for (std::size_t globalID : mesh_.getInnerNodes())
     {
         // u_{i,j}
         addDiagonalTerm(globalID);
@@ -141,7 +141,7 @@ void FiniteDifference2D::applyBoundaryConditions()
 // Use ghost nodes, whereby the boundary node is treated almost like an inner node with a 4-point stencil (see https://www.12000.org/my_notes/neumman_BC/Neumman_BC.htm) with an extra contribution to the vector b. Ensure neighboring nodes are valid (for Neumann-Neumann BC corner treatment).
 void FiniteDifference2D::applyNeumannBoundaryCondition(const mesh::BoundaryNode2D& boundary_node)
 {
-    int globalID = boundary_node.nodeID_;
+    std::size_t globalID = boundary_node.nodeID_;
 
     // u_{i,j}
     addDiagonalTerm(globalID);
@@ -181,9 +181,9 @@ void FiniteDifference2D::updateRHS(double t)
 
     // Source term
     const auto& nodes = mesh_.getNodes();
-    for (int globalID : local_to_global_)
+    for (std::size_t globalID : local_to_global_)
     {
-        int localID = global_to_local_[globalID];
+        std::size_t localID = global_to_local_[globalID];
         b_[localID] += source_(nodes[globalID].x_, nodes[globalID].y_, t);
     }
 
@@ -192,7 +192,7 @@ void FiniteDifference2D::updateRHS(double t)
 
 void FiniteDifference2D::updateDirichletBoundaryCondition(const mesh::BoundaryNode2D& boundary_node, double t)
 {
-    int globalID = boundary_node.nodeID_;
+    std::size_t globalID = boundary_node.nodeID_;
     double x = boundary_node.x_;
     double y = boundary_node.y_;
 
@@ -200,12 +200,12 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const mesh::BoundaryNo
     {
         // Get directions and values for the stencil
         auto [inx, iny] = mesh_.getBoundaryInwardDirection(tag);
-        int neighbor_inward = *mesh_.getNeighbor(globalID, {inx, iny});
+        std::size_t neighbor_inward = *mesh_.getNeighbor(globalID, {inx, iny});
 
         // Check only for corner nodes with Dirichlet-Dirichlet BCs
         if (is_dirichlet_[neighbor_inward]) continue;
 
-        int neighbor_local = global_to_local_[neighbor_inward];
+        std::size_t neighbor_local = global_to_local_[neighbor_inward];
 
         // Add contribution to the equation of the inward neighbor (corresponding to the row of that node in vector b)
         //double h = (inward_normal == DomainSide::Left || inward_normal == DomainSide::Right) ? mesh_.getDx() : mesh_.getDy();
@@ -227,8 +227,8 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const mesh::BoundaryNo
 
 void FiniteDifference2D::updateNeumannBoundaryCondition(const mesh::BoundaryNode2D& boundary_node, double t)
 {
-    int globalID = boundary_node.nodeID_;
-    int localID = global_to_local_[globalID];
+    std::size_t globalID = boundary_node.nodeID_;
+    std::size_t localID = global_to_local_[globalID];
     double x = boundary_node.x_;
     double y = boundary_node.y_;
     double h;
@@ -262,7 +262,7 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
     const std::vector<mesh::Node2D>& nodes = mesh_.getNodes();
     for (const auto& node : nodes)
     {
-        int globalID = node.nodeID_;
+        std::size_t globalID = node.nodeID_;
 
         if (!is_dirichlet_[globalID]) solution[globalID] = reduced_solution[global_to_local_[globalID]];
     }
@@ -271,7 +271,7 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
     {
         if (BC->getType() == bc::BoundaryConditionType::Dirichlet)
         {
-            for (int globalID : mesh_.getBoundary(tag))
+            for (std::size_t globalID : mesh_.getBoundary(tag))
             {
                 mesh::BoundaryNode2D boundary_node = mesh_.getBoundaryNode(globalID);
                 double x = boundary_node.x_;
@@ -287,12 +287,12 @@ Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(const Eigen::Ref<const Ei
 
 Eigen::VectorXd FiniteDifference2D::reduce(std::function<double (double, double)> u)
 {
-    int reduced_spacesize = local_to_global_.size();
+    std::size_t reduced_spacesize = local_to_global_.size();
     Eigen::VectorXd reduced_u(reduced_spacesize);
 
-    for (int i = 0; i < reduced_spacesize; ++i)
+    for (std::size_t i = 0; i < reduced_spacesize; ++i)
     {
-        int globalID = local_to_global_[i];
+        std::size_t globalID = local_to_global_[i];
         const mesh::Node2D& node = mesh_.getNode(globalID);
 
         reduced_u[i] = u(node.x_, node.y_);
