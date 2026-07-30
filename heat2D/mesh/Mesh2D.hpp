@@ -68,7 +68,7 @@ class Mesh2D
         };
         inline const std::vector<std::size_t>& getElementConnectivity() const {return element_connectivity_;};
         inline const std::vector<std::size_t>& getElementOffsets() const {return element_offsets_;};
-        inline std::size_t getNumElements() const {return static_cast<std::size_t>(element_offsets_.size()) - 1;};
+        inline std::size_t getNumElements() const {return element_offsets_.size() - 1;};
         inline const std::vector<std::size_t>& getInnerNodes() const {return inner_nodes_;};
         inline const std::vector<std::size_t>& getBoundary(const std::string& tag) const {return boundary_groups_.at(tag);};
         inline const Node2D& getNode(std::size_t nodeID) const {return nodes_[nodeID];};

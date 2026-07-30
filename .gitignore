@@ -41,3 +41,7 @@
 /CMakeFiles/
 CMakeCache.txt
 Makefile
+
+# Gmsh files for testing
+/heat2D/Mesh2D/*.geo
+/heat2D/Mesh2D/*.msh

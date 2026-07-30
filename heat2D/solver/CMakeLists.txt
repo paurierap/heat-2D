@@ -6,12 +6,12 @@ add_library(solver
 target_include_directories(solver
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
-  ${PROJECT_SOURCE_DIR}/heat2D/BoundaryCondition
 )
 
 target_link_libraries(solver
   PUBLIC
   mesh
+  bc
   Eigen3::Eigen
   $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
 )
@@ -27,4 +27,5 @@ target_link_libraries(SpatialDiscretization2D_test
   GTest::gtest_main
 )
 
-gtest_discover_tests(SpatialDiscretization2D_test)
+# Increase the timeout for test discovery to 30 seconds to avoid issues with slow test discovery on some MacOS systems.
+gtest_discover_tests(SpatialDiscretization2D_test DISCOVERY_TIMEOUT 30)

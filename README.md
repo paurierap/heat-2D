@@ -40,11 +40,11 @@ Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-call
 
 ### Class hierarchy
 
-```HeatPDE2D``` takes care of solver functionality and incorporates both the spatial discretization and the time integration. It thus requires an instance of both ```mesh::SpatialDiscretization2D``` and ```temporal::TimeIntegrator```. These are abstract base classes designed to provide a skeleton for their respective application.
+```HeatPDE2D``` takes care of solver functionality and incorporates both the spatial discretization and the time integration. It thus requires an instance of both ```mesh::SpatialDiscretization2D``` and ```ode::TimeIntegrator```. These are abstract base classes designed to provide a skeleton for their respective application.
 
 #### Spatial discretization
 
-```mesh::SpatialDiscretization2D``` represents the spatial discretization of the spatial term $\nabla\cdot(\alpha\nabla u)$ of the PDE in $\Omega$ and $\partial\Omega$. As such, it requires a mesh description (no *mesh-free* approaches), as well as boundary conditions, and the functions $\alpha$ and $f$. For the moment, the only implementation of this class is ```mesh::FiniteDifference2D```, which employs the finite difference method.
+```solver::SpatialDiscretization2D``` represents the spatial discretization of the spatial term $\nabla\cdot(\alpha\nabla u)$ of the PDE in $\Omega$ and $\partial\Omega$. As such, it requires a mesh description (no *mesh-free* approaches), as well as boundary conditions, and the functions $\alpha$ and $f$. For the moment, the only implementation of this class is ```solver::FiniteDifference2D```, which employs the finite difference method.
 
 Another abstract base class is represented in ```mesh::Mesh2D```, currently implemented by ```mesh::StructuredMesh2D``` (unstructured meshes are planned for the future). This can be instantiated by providing the utility ```struct Domain2D```, which defines the axis-aligned 2D rectangular domain $\Omega$ based on the coordinates of its sides: $x_l$, $x_r$, $y_b$ and $y_t$ (in this order); along with the number of desired nodes in each direction, $n_x$ and $n_y$.
 
@@ -56,16 +56,16 @@ Internally, the problem is discretized using all these constructs into an ```Eig
 
 #### Time integrator  
 
-```temporal::TimeIntegrator``` is the base class for a time integration scheme, either explicit or implicit. It only takes the timestep $dt$ as input parameter and defines the member function ```step```, which takes care of time-marching for a solution. There are currently three implementations for this class, each with a different ```step```:
+```ode::TimeIntegrator``` is the base class for a time integration scheme, either explicit or implicit. It only takes the timestep $dt$ as input parameter and defines the member function ```step```, which takes care of time-marching for a solution. There are currently three implementations for this class, each with a different ```step```:
 
-- ```temporal::ExplicitEuler```: a first-order explicit time integrator. For the time being, no stability checks are made. It's up to the user to ensure the CFL condition holds
+- ```ode::ExplicitEuler```: a first-order explicit time integrator. For the time being, no stability checks are made. It's up to the user to ensure the CFL condition holds
   
 ```math
 \frac{dt}{h^2} < \frac{1}{4\alpha}
 ```
 
-- ```temporal::ImplicitEuler```: a first-order implicit time integrator. The constant part of the resulting system of equations is pre-computed for increased performance using ```setUp```. If used without ```HeatPDE2D```, ```setUp``` is **must** be run *before* ```step```.
-- ```temporal::CrankNicolson```: a second-order implicit time integrator. The same conditions for ```setUp``` as before apply here.
+- ```ode::ImplicitEuler```: a first-order implicit time integrator. The constant part of the resulting system of equations is pre-computed for increased performance using ```setUp```. If used without ```HeatPDE2D```, ```setUp``` is **must** be run *before* ```step```.
+- ```ode::CrankNicolson```: a second-order implicit time integrator. The same conditions for ```setUp``` as before apply here.
 
 #### Solution writer
 
@@ -121,7 +121,7 @@ Two alternatives exist, using ```Domain2D``` or just directly the coordinates of
 ```cpp
 #include "StructuredMesh2D.hpp"
 
-int n = 101;
+std::size_t n = 101;
 double left = 0, right = 1, bottom = 0, top = 1;
 mesh::Domain2D Omega{0, 1, 0, 1};
 
@@ -187,7 +187,7 @@ Once the spatial domain $\Omega$ has been discretized, we choose a time integrat
 
 // Time integrator
 double dt = 0.1;
-temporal::CrankNicolson ti(dt);
+ode::CrankNicolson ti(dt);
 
 // Initial condition
 auto u0 = [](double, double){return 0.0;};

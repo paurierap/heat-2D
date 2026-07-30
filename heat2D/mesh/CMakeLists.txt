@@ -18,29 +18,33 @@ target_link_libraries(Mesh2D_test
   GTest::gtest_main
 )
 
+configure_file(
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_shape.msh
+    ${CMAKE_CURRENT_BINARY_DIR}/test_shape.msh
+    COPYONLY
+)
+
 gtest_discover_tests(Mesh2D_test)
 
 # Verify gmsh is found
-if(ENABLE_GMSH)
-    if(NOT gmsh_FOUND)
-        message(FATAL_ERROR "ENABLE_GMSH=ON but Gmsh was not found.")
+if(HEAT2D_ENABLE_GMSH)
+    if(NOT Gmsh_FOUND)
+        message(FATAL_ERROR "HEAT2D_ENABLE_GMSH=ON but Gmsh was not found.")
     endif()
     message(STATUS "Gmsh found -- UnstructuredMesh2D enabled.")
     
-    # target_sources(mesh 
-    #   PRIVATE 
-    #   UnstructuredMesh2D.cpp
-    # )
-    # target_link_libraries(mesh 
-    #   PRIVATE 
-    #   gmsh
-    # )
-    # target_compile_definitions(mesh 
-    #   PRIVATE
-    #   HEAT2D_HAS_GMSH
-    # )
-
+    target_sources(mesh 
+      PRIVATE 
+      UnstructuredMesh2D.cpp
+    )
+    target_link_libraries(mesh 
+      PRIVATE 
+      Gmsh::Gmsh
+    )
+    target_compile_definitions(mesh 
+      PUBLIC
+      HEAT2D_HAS_GMSH
+    )
 else()
     message(STATUS "Gmsh not found -- UnstructuredMesh2D disabled.")
 endif()
-

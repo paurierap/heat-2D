@@ -1,5 +1,4 @@
 #include <Eigen/Sparse>
-#include <array>
 #include <functional>
 #include <iostream>
 #include <optional>
@@ -7,7 +6,7 @@
 #include <vector>
 
 #include "FiniteDifference2D.hpp"
-#include "NeumannBoundaryCondition.hpp"
+#include "BoundaryConditions.hpp"
 #include "StructuredMesh2D.hpp"
 
 namespace heat2d::solver
@@ -23,7 +22,7 @@ FiniteDifference2D::FiniteDifference2D(std::function<double (double, double)> al
         {
             for (std::size_t nodeID : mesh_.getBoundary(tag)) is_dirichlet_[nodeID] = true;
         }
-        else hasNeumann = true;
+        else isMatrixSPD = false;
     }
 
     buildMappings();
@@ -73,7 +72,9 @@ void FiniteDifference2D::addDiagonalTerm(std::size_t nodeID)
     double dx = mesh_.getDx();
     double dy = mesh_.getDy();
 
-    tripletList.emplace_back(localID, localID, -(alpha_(x + 0.5 * dx, y) + alpha_(x - 0.5 * dx, y)) / (dx*dx) -(alpha_(x, y + 0.5 * dy) + alpha_(x, y - 0.5 * dy)) / (dy*dy));
+    tripletList.emplace_back(localID, localID, 
+        -(alpha_(x + 0.5 * dx, y) + alpha_(x - 0.5 * dx, y)) / (dx*dx) 
+        -(alpha_(x, y + 0.5 * dy) + alpha_(x, y - 0.5 * dy)) / (dy*dy));
 }
 
 // Off diagonal contributions (multiplier parameter, defaulted to 1.0, included in case there is a contribution from Neumann BCs)
@@ -132,39 +133,44 @@ void FiniteDifference2D::applyBoundaryConditions()
     for (const auto& boundary_node : boundary_nodes)  
     {
         if (is_dirichlet_[boundary_node.nodeID_]) continue;
-        applyNeumannBoundaryCondition(boundary_node);
+        applyFluxBoundaryCondition(boundary_node);            
     }
 
     return;
 }
 
-// Use ghost nodes, whereby the boundary node is treated almost like an inner node with a 4-point stencil (see https://www.12000.org/my_notes/neumman_BC/Neumman_BC.htm) with an extra contribution to the vector b. Ensure neighboring nodes are valid (for Neumann-Neumann BC corner treatment).
-void FiniteDifference2D::applyNeumannBoundaryCondition(const mesh::BoundaryNode2D& boundary_node)
+// Use ghost nodes, whereby the boundary node is treated almost like an inner node with a 4-point stencil (see https://www.12000.org/my_notes/neumman_BC/Neumman_BC.htm).
+void FiniteDifference2D::applyFluxBoundaryCondition(const mesh::BoundaryNode2D& boundary_node)
 {
     std::size_t globalID = boundary_node.nodeID_;
+    std::size_t localID  = global_to_local_[globalID];
+    double x = boundary_node.x_;
+    double y = boundary_node.y_;
 
-    // u_{i,j}
     addDiagonalTerm(globalID);
 
     for (auto [dirx, diry] : stencil)
     {
-        // Check if this direction is an inward normal for any of the node's tags
         bool isInward = false;
+        const std::string* activeTag = nullptr;
         for (const auto& tag : boundary_node.tags_)
         {
             auto [inx, iny] = mesh_.getBoundaryInwardDirection(tag);
-            if (inx == dirx && iny == diry) 
-            { 
-                isInward = true; 
-                break; 
-            }
+            if (inx == dirx && iny == diry) { isInward = true; activeTag = &tag; break; }
         }
 
-        double factor = isInward ? 2.0 : 1.0;
-        addOffDiagonalTerm(globalID, {dirx, diry}, factor);
-    }
+        addOffDiagonalTerm(globalID, {dirx, diry}, isInward ? 2.0 : 1.0);
 
-    return;
+        if (isInward)
+        {
+            const bc::BoundaryCondition& BC = getBoundaryCondition(*activeTag);
+            double h = dirx ? mesh_.getDx() : mesh_.getDy();
+            double alpha_mid = dirx ? alpha_(x + 0.5*dirx*h, y) : alpha_(x, y + 0.5*diry*h);
+
+            double correction = -2.0 * alpha_mid / h * BC.u_coeff(x,y) / BC.du_coeff(x,y);
+            tripletList.emplace_back(localID, localID, correction);
+        }
+    }
 }
 
 void FiniteDifference2D::updateRHS(double t)
@@ -175,10 +181,10 @@ void FiniteDifference2D::updateRHS(double t)
     const std::vector<mesh::BoundaryNode2D>& boundary_nodes = mesh_.getBoundaryNodes();
     for (const auto& boundary_node : mesh_.getBoundaryNodes()) 
     {
-        if (is_dirichlet_[boundary_node.nodeID_]) updateDirichletBoundaryCondition(boundary_node, t);  
-        else updateNeumannBoundaryCondition(boundary_node, t);
+        if (is_dirichlet_[boundary_node.nodeID_]) updateDirichletBoundaryCondition(boundary_node, t);
+        else updateFluxBoundaryCondition(boundary_node, t);
     }
-
+    
     // Source term
     const auto& nodes = mesh_.getNodes();
     for (std::size_t globalID : local_to_global_)
@@ -225,23 +231,22 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(const mesh::BoundaryNo
     return;
 }
 
-void FiniteDifference2D::updateNeumannBoundaryCondition(const mesh::BoundaryNode2D& boundary_node, double t)
+void FiniteDifference2D::updateFluxBoundaryCondition(const mesh::BoundaryNode2D& boundary_node, double t)
 {
     std::size_t globalID = boundary_node.nodeID_;
-    std::size_t localID = global_to_local_[globalID];
+    std::size_t localID  = global_to_local_[globalID];
     double x = boundary_node.x_;
     double y = boundary_node.y_;
-    double h;
 
     for (const auto& tag : boundary_node.tags_)
     {
-        if (tag == "Left" || tag == "Right") h = mesh_.getDx();
-        else h = mesh_.getDy();
+        auto [inx, iny] = mesh_.getBoundaryInwardDirection(tag);
+        double h = inx ? mesh_.getDx() : mesh_.getDy();
+        double alpha_mid = inx ? alpha_(x + 0.5*inx*h, y) : alpha_(x, y + 0.5*iny*h);
 
-        b_[localID] += 2. * alpha_(x,y) / h * getBoundaryCondition(tag).f(x,y,t);
+        const bc::BoundaryCondition& BC = getBoundaryCondition(tag);
+        b_[localID] += 2.0 * alpha_mid / h * BC.f(x,y,t) / BC.du_coeff(x,y,t);
     }
-
-    return;
 }
 
 // Solve Poisson's equation, ie du/dt = 0.
@@ -309,7 +314,7 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced()
     updateRHS();
     
     // Direct LDL^T factorization (only if A is SPD)
-    if (!hasNeumann)
+    if (isMatrixSPD)
     {
         Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
         ldlt.compute(-matrix_);

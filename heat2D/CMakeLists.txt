@@ -1,6 +1,7 @@
 # Add subdirectories
-add_subdirectory(BoundaryCondition)
+add_subdirectory(bc)
 add_subdirectory(HeatPDE2D)
-add_subdirectory(Mesh2D)
-add_subdirectory(TimeIntegrator)
-add_subdirectory(SpatialDiscretization2D)
+add_subdirectory(mesh)
+add_subdirectory(Quadrature2D)
+add_subdirectory(ode)
+add_subdirectory(solver)

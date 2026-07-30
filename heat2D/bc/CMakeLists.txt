@@ -1,3 +1,11 @@
+# Add header-only library
+add_library(bc INTERFACE)
+
+target_include_directories(bc 
+  INTERFACE 
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
 # Build BoundaryCondition test
 add_executable(BoundaryCondition_test
   BoundaryCondition.test.cpp

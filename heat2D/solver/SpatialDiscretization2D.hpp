@@ -1,7 +1,6 @@
 #ifndef SPATIALDISCRETIZATION2D_HPP
 #define SPATIALDISCRETIZATION2D_HPP
 
-#include <array>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <functional>

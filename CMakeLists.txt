@@ -22,7 +22,7 @@ enable_testing()
 include(GoogleTest)
 
 # Try to find Eigen
-find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(Eigen3 REQUIRED)
 
 if(NOT TARGET Eigen3::Eigen)
   message(STATUS "Eigen not found system-wide; fetching with FetchContent")
@@ -39,16 +39,21 @@ endif()
 # Try to find OpenMP
 find_package(OpenMP)
 
+# Try to find Gmsh
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/CMake")
+find_package(Gmsh QUIET)
+option(HEAT2D_ENABLE_GMSH "Enable Gmsh support for unstructured meshes" ${Gmsh_FOUND})
+
 # Add subdirectories
 add_subdirectory(heat2D)
 
-option(BUILD_EXAMPLES "Build examples" OFF)
-option(BUILD_BENCHMARKS "Build benchmarks" OFF)
+option(HEAT2D_BUILD_EXAMPLES "Build examples" OFF)
+option(HEAT2D_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
-if(BUILD_EXAMPLES)
+if(HEAT2D_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-if(BUILD_BENCHMARKS)
+if(HEAT2D_BUILD_BENCHMARKS)
     add_subdirectory(benchmarks)
 endif()

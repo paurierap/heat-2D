@@ -3,8 +3,7 @@
 #include <functional>
 #include <gtest/gtest.h>
 
-#include "DirichletBoundaryCondition.hpp"
-#include "NeumannBoundaryCondition.hpp"
+#include "BoundaryConditions.hpp"
 #include "FiniteDifference2D.hpp"
 #include "StructuredMesh2D.hpp"
 
@@ -412,4 +411,104 @@ TEST(FiniteDifference2D, PoissonVariableAlphaConvergence)
     double rate = std::log(err_coarse / err_fine) / std::log(mesh_coarse.getDx() / mesh_fine.getDx());
 
     EXPECT_NEAR(rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// Test 9 - Robin BC with u_coeff=0 must reduce exactly to a Neumann BC, even
+//          when du_coeff != 1. This targets the off-diagonal ghost-node factor
+//          directly: the old implementation used (1 + 1/du_coeff) instead of
+//          the correct 2.0, which only coincided with Neumann when du_coeff=1.
+// =============================================================================
+TEST(FiniteDifference2D, RobinReducesToNeumannWhenUCoeffZero)
+{
+    constexpr std::size_t nx = 31, ny = 31;
+    constexpr double Lx = 2.0, Ly = 3.0;
+    const mesh::StructuredMesh2D mesh(0, Lx, 0, Ly, nx, ny);
+
+    auto zeroBC   = [](double, double, double){ return 0.0; };
+    auto bottomBC = [&](double x, double, double){ return std::sin(M_PI * x / Lx); };
+    auto topFluxNeumann = [&](double x, double, double)
+    {
+        return M_PI / Lx * std::sin(M_PI * x / Lx) * std::sinh(M_PI * Ly / Lx);
+    };
+    auto duCoeff  = [](double, double, double){ return 2.0; };
+    auto uCoeff0  = [](double, double, double){ return 0.0; };
+    auto topFluxRobin = [&](double x, double y, double t){ return 2.0 * topFluxNeumann(x, y, t); };
+
+    auto source = [](double, double, double){ return 0.0; };
+    auto alpha  = [](double, double){ return 1.0; };
+
+    solver::BoundaryConditions bc_neumann;
+    bc_neumann["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc_neumann["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc_neumann["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(bottomBC);
+    bc_neumann["Top"]    = std::make_shared<bc::NeumannBoundaryCondition>(topFluxNeumann);
+
+    solver::BoundaryConditions bc_robin;
+    bc_robin["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc_robin["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc_robin["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(bottomBC);
+    bc_robin["Top"]    = std::make_shared<bc::RobinBoundaryCondition>(uCoeff0, duCoeff, topFluxRobin);
+
+    solver::FiniteDifference2D fd_neumann(alpha, mesh, bc_neumann, source);
+    solver::FiniteDifference2D fd_robin(alpha, mesh, bc_robin, source);
+
+    fd_neumann.discretize();
+    fd_robin.discretize();
+
+    Eigen::VectorXd sol_neumann = fd_neumann.solveSteadyState();
+    Eigen::VectorXd sol_robin   = fd_robin.solveSteadyState();
+
+    EXPECT_LT((sol_neumann - sol_robin).lpNorm<Eigen::Infinity>(), 1e-12);
+}
+
+// =============================================================================
+// Test 10 - Verify 2nd-order convergence for the Laplace equation with a true
+//           Robin BC (u_coeff, du_coeff both non-trivial) on the top boundary.
+//
+// u(x,y) = sin(πx/Lx) cosh(πy/Lx) is harmonic. Dirichlet on left/right/bottom:
+// u_left = u_right = 0, u_bottom = sin(πx/Lx). On top, with u_coeff=2, du_coeff=3:
+// f(x) = 2*u_top + 3*du/dy|_top
+//      = sin(πx/Lx) * [2 cosh(πLy/Lx) + 3(π/Lx) sinh(πLy/Lx)]
+// =============================================================================
+TEST(FiniteDifference2D, LaplaceRobinBCConvergence)
+{
+    constexpr std::size_t n_coarse = 51;
+    constexpr std::size_t n_fine   = 101;
+    constexpr double Lx = 2.0, Ly = 3.0;
+
+    const mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse, n_coarse);
+    const mesh::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
+
+    auto zeroBC   = [](double, double, double){ return 0.0; };
+    auto bottomBC = [&](double x, double, double){ return std::sin(M_PI * x / Lx); };
+
+    auto uCoeff  = [](double, double, double){ return 2.0; };
+    auto duCoeff = [](double, double, double){ return 3.0; };
+    auto topRobinF = [&](double x, double, double)
+    {
+        return std::sin(M_PI * x / Lx) *
+               (2.0 * std::cosh(M_PI * Ly / Lx) + 3.0 * (M_PI / Lx) * std::sinh(M_PI * Ly / Lx));
+    };
+
+    solver::BoundaryConditions bc;
+    bc["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(bottomBC);
+    bc["Top"]    = std::make_shared<bc::RobinBoundaryCondition>(uCoeff, duCoeff, topRobinF);
+
+    auto source = [](double, double, double){ return 0.0; };
+    auto solution = [&](double x, double y){ return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx); };
+
+    auto alpha = [](double, double){ return 1.0; };
+    solver::FiniteDifference2D fd_coarse(alpha, mesh_coarse, bc, source);
+    solver::FiniteDifference2D fd_fine(alpha, mesh_fine, bc, source);
+
+    double err_coarse = solve_and_get_error(fd_coarse, mesh_coarse, solution);
+    double err_fine   = solve_and_get_error(fd_fine,   mesh_fine,   solution);
+    double h_coarse = mesh_coarse.getDx();
+    double h_fine   = mesh_fine.getDx();
+
+    double convergence_rate = std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
+    EXPECT_NEAR(convergence_rate, 2.0, 0.1);
 }

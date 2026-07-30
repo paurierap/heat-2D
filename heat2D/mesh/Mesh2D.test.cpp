@@ -13,10 +13,14 @@
 #include "UnstructuredMesh2D.hpp"
 #endif
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 using namespace heat2d::mesh;
 
 // =============================================================================
-// Fixture - Avoids repeated allocation
+// StructuredMesh fixture
 // =============================================================================
 class StructuredMesh2DTest : public testing::Test
 {
@@ -282,3 +286,44 @@ TEST_F(StructuredMesh2DTest, BoundaryGroupsConsistentWithBoundaryNodes)
         }
     }
 }
+
+#ifdef HEAT2D_HAS_GMSH
+// =============================================================================
+// UnstructuredMesh fixture
+// =============================================================================
+class UnstructuredMesh2DTest : public testing::Test
+{
+    protected: 
+        const std::string meshfile = "test_shape.msh";
+};
+
+// =============================================================================
+// Test 1 - Check constructor from invalid dimensions
+// =============================================================================
+TEST(UnstructuredMesh2D, InvalidMeshFileThrows) 
+{
+    EXPECT_THROW(UnstructuredMesh2D("random_test.msh"), std::invalid_argument);
+}
+
+// =============================================================================
+// Test 16 - Check element areas are positive and sum to domain area
+// =============================================================================
+TEST(UnstructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea)
+{
+    UnstructuredMesh2D mesh("test_shape.msh");
+
+    double totalArea = 0.0;
+    std::size_t numElements = mesh.getNumElements();
+
+    for (std::size_t i = 0; i < numElements; ++i)
+    {
+        double area = mesh.getElementArea(i);
+
+        EXPECT_GT(area, 0.0) << "Element " << i << " has non-positive area";
+        totalArea += area;
+    }
+
+    double domainArea = 0.24 * M_PI;
+    EXPECT_NEAR(totalArea, domainArea, 1e-4);
+}
+#endif

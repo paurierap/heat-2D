@@ -20,7 +20,9 @@ class FiniteDifference2D: public SpatialDiscretization2D
 
         // Structured mesh required for finite differences
         const mesh::StructuredMesh2D& mesh_;
-        bool hasNeumann = false;
+
+        // Flag to indicate if the Laplacian matrix is symmetric positive definite (SPD). If there are Neumann or Robin boundary conditions, the matrix may not be SPD.
+        bool isMatrixSPD = true;
 
     public:
         FiniteDifference2D(std::function<double (double, double)>, const mesh::StructuredMesh2D&, BoundaryConditions, std::function<double (double, double, double)>);
@@ -34,17 +36,17 @@ class FiniteDifference2D: public SpatialDiscretization2D
         void applyLaplacian() override;
 
         void applyBoundaryConditions() override;
-        void applyNeumannBoundaryCondition(const mesh::BoundaryNode2D&);
+        void applyFluxBoundaryCondition(const mesh::BoundaryNode2D&);
 
         void updateRHS(double t=0.0) override;
         void updateDirichletBoundaryCondition(const mesh::BoundaryNode2D&, double t);
-        void updateNeumannBoundaryCondition(const mesh::BoundaryNode2D&, double t);
+        void updateFluxBoundaryCondition(const mesh::BoundaryNode2D&, double t);
 
         Eigen::VectorXd solveSteadyState() override;
         Eigen::VectorXd reduce(std::function<double (double, double)>) override;
         Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&, double) const override;
         Eigen::VectorXd solve_reduced();
-        virtual bool isSPD() const override {return !hasNeumann;};
+        virtual bool isSPD() const override {return isMatrixSPD;};
 };
 
 } // namespace
