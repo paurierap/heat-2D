@@ -1,8 +1,9 @@
-#include <cmath>
+#include <omp.h>
+
 #include <chrono>
+#include <cmath>
 #include <functional>
 #include <iostream>
-#include <omp.h>
 #include <string>
 
 #include "CrankNicolson.hpp"
@@ -21,70 +22,76 @@ using namespace heat2d;
 // =============================================================================
 // Benchmarking with a decaying Gaussian pulse
 // =============================================================================
-void benchmark()
-{
-    constexpr std::size_t::size_t    n        = 1001;
-    constexpr int    n_steps  = 10;
-    constexpr double dt       = 1e-4;
-    double           t        = 0.0;
+void benchmark() {
+  constexpr std::size_t n = 1001;
+  constexpr int n_steps = 10;
+  constexpr double dt = 1e-4;
+  double t = 0.0;
 
-    mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+  mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
-    // Boundary conditions
-    auto zeroBC = [](double, double, double){ return 0.0; };
-    solver::BoundaryConditions bc;
-    bc["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Top"]    = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  // Boundary conditions
+  auto zeroBC = [](double, double, double) { return 0.0; };
+  solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
 
-    // Thermal diffusivity
-    auto alpha = [](double, double y){return 0.01 * std::exp(-25.0 * (y - 0.5)*(y - 0.5));};
+  // Thermal diffusivity
+  auto alpha = [](double, double y) {
+    return 0.01 * std::exp(-25.0 * (y - 0.5) * (y - 0.5));
+  };
 
-    // Source term
-    auto source = [](double, double, double){return 0.0;};
+  // Source term
+  auto source = [](double, double, double) { return 0.0; };
 
-    // Initial condition
-    auto u0 = [](double x, double y){return std::exp(-80.0 * ((x - 0.25)*(x - 0.25) + (y - 0.25)*(y - 0.25)));};
+  // Initial condition
+  auto u0 = [](double x, double y) {
+    return std::exp(-80.0 *
+                    ((x - 0.25) * (x - 0.25) + (y - 0.25) * (y - 0.25)));
+  };
 
-    // Set up the solver and writer
-    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
-    ode::CrankNicolson         ti(dt);
+  // Set up the solver and writer
+  solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+  ode::CrankNicolson ti(dt);
 
-    auto t0 = std::chrono::high_resolution_clock::now();
-    fd.discretize();
-    auto t1 = std::chrono::high_resolution_clock::now();
-    
-    Eigen::VectorXd u = fd.reduce(u0);
-    auto t2 = std::chrono::high_resolution_clock::now();
-    
-    // Cache necessary matrices (depending on the time integration scheme)
-    ti.setUp(fd);
-    auto t3 = std::chrono::high_resolution_clock::now();
+  auto t0 = std::chrono::high_resolution_clock::now();
+  fd.discretize();
+  auto t1 = std::chrono::high_resolution_clock::now();
 
-    std::cout << "\nWith n = " << n << ": Discretize = " 
-            << std::chrono::duration<double,std::milli>(t1-t0).count() << "ms,  "
+  Eigen::VectorXd u = fd.reduce(u0);
+  auto t2 = std::chrono::high_resolution_clock::now();
+
+  // Cache necessary matrices (depending on the time integration scheme)
+  ti.setUp(fd);
+  auto t3 = std::chrono::high_resolution_clock::now();
+
+  std::cout << "\nWith n = " << n << ": Discretize = "
+            << std::chrono::duration<double, std::milli>(t1 - t0).count()
+            << "ms,  "
             << "setUp = "
-            << std::chrono::duration<double,std::milli>(t3-t2).count() << "ms\n\n";
+            << std::chrono::duration<double, std::milli>(t3 - t2).count()
+            << "ms\n\n";
 
-    for (int i = 0; i < n_steps; ++i)
-    {
-        auto t4 = std::chrono::high_resolution_clock::now();
-        ti.step(fd, t, u);
-        auto t5 = std::chrono::high_resolution_clock::now();
+  for (int i = 0; i < n_steps; ++i) {
+    auto t4 = std::chrono::high_resolution_clock::now();
+    ti.step(fd, t, u);
+    auto t5 = std::chrono::high_resolution_clock::now();
 
-        std::cout << "Step " << i << ": " << std::chrono::duration<double,std::milli>(t5-t4).count() << "ms\n";
-        t += dt;
-    }
+    std::cout << "Step " << i << ": "
+              << std::chrono::duration<double, std::milli>(t5 - t4).count()
+              << "ms\n";
+    t += dt;
+  }
 }
 
 // =============================================================================
-int main()
-{
-    std::cout << "Benchmarking decaying Gaussian pulse...\n";
+int main() {
+  std::cout << "Benchmarking decaying Gaussian pulse...\n";
 
-    benchmark();
+  benchmark();
 
-    std::cout << "  -> Benchmark completed.\n";
-    return 0;
+  std::cout << "  -> Benchmark completed.\n";
+  return 0;
 }

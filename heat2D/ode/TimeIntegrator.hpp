@@ -7,34 +7,32 @@
 
 #include "SpatialDiscretization2D.hpp"
 
-namespace heat2d::ode
-{
+namespace heat2d::ode {
 
 using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
-class TimeIntegrator
-{
-    protected:
-        double timestep_;
+class TimeIntegrator {
+ protected:
+  double timestep_;
 
-    public:
-        TimeIntegrator(double timestep) 
-        : timestep_(timestep)
-        {
-            if (timestep <= 0) throw std::invalid_argument("The timestep must be a positive number.");
-        };
-        
-        virtual ~TimeIntegrator() = default;
-        
-        virtual void setUp(const solver::SpatialDiscretization2D&) = 0;
+ public:
+  TimeIntegrator(double timestep) : timestep_(timestep) {
+    if (timestep <= 0)
+      throw std::invalid_argument("The timestep must be a positive number.");
+  };
 
-        // Advances u by one timestep for du/dt = A*u + b
-        virtual void step(solver::SpatialDiscretization2D&, double, Eigen::VectorXd&) const = 0;
-        virtual std::unique_ptr<TimeIntegrator> cloneWithTimestep(double) const = 0;
+  virtual ~TimeIntegrator() = default;
 
-        // Getters
-        inline double getTimestep() const {return timestep_;};
+  virtual void setUp(const solver::SpatialDiscretization2D&) = 0;
+
+  // Advances u by one timestep for du/dt = A*u + b
+  virtual void step(solver::SpatialDiscretization2D&, double,
+                    Eigen::VectorXd&) const = 0;
+  virtual std::unique_ptr<TimeIntegrator> cloneWithTimestep(double) const = 0;
+
+  // Getters
+  inline double getTimestep() const { return timestep_; };
 };
 
-} // namespace
-#endif // ifndef
+}  // namespace heat2d::ode
+#endif  // ifndef

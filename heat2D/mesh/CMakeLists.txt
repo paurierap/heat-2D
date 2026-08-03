@@ -24,7 +24,7 @@ configure_file(
     COPYONLY
 )
 
-gtest_discover_tests(Mesh2D_test)
+gtest_discover_tests(Mesh2D_test DISCOVERY_TIMEOUT 30)
 
 # Verify gmsh is found
 if(HEAT2D_ENABLE_GMSH)

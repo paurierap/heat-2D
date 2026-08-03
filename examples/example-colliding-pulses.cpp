@@ -1,14 +1,13 @@
+#include <Eigen/Dense>
 #include <cmath>
 #include <functional>
 #include <iostream>
 #include <string>
 
-#include <Eigen/Dense>
-
 #include "CrankNicolson.hpp"
+#include "DirichletBoundaryCondition.hpp"
 #include "FiniteDifference2D.hpp"
 #include "HeatPDE2D.hpp"
-#include "DirichletBoundaryCondition.hpp"
 #include "SolutionWriter.hpp"
 #include "StructuredMesh2D.hpp"
 
@@ -21,75 +20,73 @@ using namespace heat2d;
 // =============================================================================
 // Helper: run a simulation and write output every `write_every` steps
 // =============================================================================
-void run(HeatPDE2D& solver,
-         const mesh::StructuredMesh2D& mesh,
-         SolutionWriter& writer,
-         double t_end,
-         int    write_every = 1)
-{
-    int step = 0;
-    solver.integrate(t_end, [&](double t, const Eigen::VectorXd& u)
-    {
-        if (step % write_every == 0) writer.write(mesh, u, t);
-        ++step;
-    });
+void run(HeatPDE2D& solver, const mesh::StructuredMesh2D& mesh,
+         SolutionWriter& writer, double t_end, int write_every = 1) {
+  int step = 0;
+  solver.integrate(t_end, [&](double t, const Eigen::VectorXd& u) {
+    if (step % write_every == 0) writer.write(mesh, u, t);
+    ++step;
+  });
 }
 
 // =============================================================================
 // Four colliding Gaussian pulses
 //
 // Four symmetric heat pulses drift toward each other, merge, and slowly
-// spread out under zero Dirichlet walls. 
+// spread out under zero Dirichlet walls.
 // =============================================================================
-void example_colliding_pulses()
-{
-    constexpr std::size_t    n     = 101;
-    constexpr double dt    = 0.05;
-    constexpr double t_end = 5.0;
+void example_colliding_pulses() {
+  constexpr std::size_t n = 101;
+  constexpr double dt = 0.05;
+  constexpr double t_end = 5.0;
 
-    mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
+  mesh::StructuredMesh2D mesh(0, 1, 0, 1, n, n);
 
-    // Boundary conditions
-    auto zeroBC = [](double, double, double){ return 0.0; };
-    solver::BoundaryConditions bc;
-    bc["Left"]   = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Right"]  = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
-    bc["Top"]    = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  // Boundary conditions
+  auto zeroBC = [](double, double, double) { return 0.0; };
+  solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
 
-    // Thermal diffusivity
-    auto alpha = [](double, double y){return 0.01 * std::exp(-25.0 * (y - 0.5)*(y - 0.5));};
+  // Thermal diffusivity
+  auto alpha = [](double, double y) {
+    return 0.01 * std::exp(-25.0 * (y - 0.5) * (y - 0.5));
+  };
 
-    // Source term
-    auto source = [](double, double, double){return 0.0;};
+  // Source term
+  auto source = [](double, double, double) { return 0.0; };
 
-    // Initial condition: four Gaussian pulses
-    auto u0 = [](double x, double y) 
-    {
-        double p1 = std::exp(-80.0 * ((x - 0.25)*(x - 0.25) + (y - 0.25)*(y - 0.25)));
-        double p2 = std::exp(-80.0 * ((x - 0.25)*(x - 0.25) + (y - 0.75)*(y - 0.75)));
-        double p3 = std::exp(-80.0 * ((x - 0.75)*(x - 0.75) + (y - 0.25)*(y - 0.25)));
-        double p4 = std::exp(-80.0 * ((x - 0.75)*(x - 0.75) + (y - 0.75)*(y - 0.75)));
-        return p1 + p2 + p3 + p4;
-    };
+  // Initial condition: four Gaussian pulses
+  auto u0 = [](double x, double y) {
+    double p1 =
+        std::exp(-80.0 * ((x - 0.25) * (x - 0.25) + (y - 0.25) * (y - 0.25)));
+    double p2 =
+        std::exp(-80.0 * ((x - 0.25) * (x - 0.25) + (y - 0.75) * (y - 0.75)));
+    double p3 =
+        std::exp(-80.0 * ((x - 0.75) * (x - 0.75) + (y - 0.25) * (y - 0.25)));
+    double p4 =
+        std::exp(-80.0 * ((x - 0.75) * (x - 0.75) + (y - 0.75) * (y - 0.75)));
+    return p1 + p2 + p3 + p4;
+  };
 
-    // Set up the solver and writer
-    solver::FiniteDifference2D fd(alpha, mesh, bc, source);
-    ode::CrankNicolson         ti(dt);
-    HeatPDE2D                  solver(fd, ti, 0.0, u0);
-    SolutionWriter             writer("examples/colliding-pulses.csv");
+  // Set up the solver and writer
+  solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+  ode::CrankNicolson ti(dt);
+  HeatPDE2D solver(fd, ti, 0.0, u0);
+  SolutionWriter writer("examples/colliding-pulses.csv");
 
-    // Run and write output every 2 steps (every 0.1 time units)
-    run(solver, mesh, writer, t_end, 2);
+  // Run and write output every 2 steps (every 0.1 time units)
+  run(solver, mesh, writer, t_end, 2);
 }
 
 // =============================================================================
-int main()
-{
-    std::cout << "Running: Four colliding Gaussian pulses...\n";
+int main() {
+  std::cout << "Running: Four colliding Gaussian pulses...\n";
 
-    example_colliding_pulses();
+  example_colliding_pulses();
 
-    std::cout << "  -> colliding-pulses.csv generated.\n";
-    return 0;
+  std::cout << "  -> colliding-pulses.csv generated.\n";
+  return 0;
 }

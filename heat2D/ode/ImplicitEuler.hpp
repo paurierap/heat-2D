@@ -1,64 +1,66 @@
 #ifndef IMPLICITEULER_HPP
 #define IMPLICITEULER_HPP
 
-#include <cassert>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
+#include <cassert>
 #include <iostream>
 #include <memory>
 
 #include "TimeIntegrator.hpp"
 
-namespace heat2d::ode
-{
+namespace heat2d::ode {
 
-class ImplicitEuler : public TimeIntegrator
-{
-    private:
-        Eigen::SparseMatrix<double> M_lhs_;
-        Eigen::SparseLU<Eigen::SparseMatrix<double>> LUsolver_;
-        bool isInitialized_ = false;
+class ImplicitEuler : public TimeIntegrator {
+ private:
+  Eigen::SparseMatrix<double> M_lhs_;
+  Eigen::SparseLU<Eigen::SparseMatrix<double>> LUsolver_;
+  bool isInitialized_ = false;
 
-    public:
-        ImplicitEuler(double timestep) 
-        : TimeIntegrator(timestep)
-        {};
+ public:
+  ImplicitEuler(double timestep) : TimeIntegrator(timestep) {};
 
-        void setUp(const solver::SpatialDiscretization2D& sd) override
-        {
-            const Eigen::SparseMatrix<double>& A = sd.getMatrix();
+  void setUp(const solver::SpatialDiscretization2D& sd) override {
+    const Eigen::SparseMatrix<double>& A = sd.getMatrix();
 
-            M_lhs_ = Eigen::SparseMatrix<double>(A.rows(), A.cols());
-            M_lhs_.setIdentity();
-            M_lhs_ -= timestep_ * A;
+    M_lhs_ = Eigen::SparseMatrix<double>(A.rows(), A.cols());
+    M_lhs_.setIdentity();
+    M_lhs_ -= timestep_ * A;
 
-            LUsolver_.compute(M_lhs_);
+    LUsolver_.compute(M_lhs_);
 
-            if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("LU factorization for Implicit Euler failed\n");
+    if (LUsolver_.info() != Eigen::Success)
+      throw std::runtime_error("LU factorization for Implicit Euler failed\n");
 
-            isInitialized_ = true;
-        }
+    isInitialized_ = true;
+  }
 
-        void step(solver::SpatialDiscretization2D& sd, double t, Eigen::VectorXd& u) const override
-        {
-            if (!isInitialized_) throw std::logic_error("\nStep function for Implicit Euler time integration was used before SetUp.\n");
+  void step(solver::SpatialDiscretization2D& sd, double t,
+            Eigen::VectorXd& u) const override {
+    if (!isInitialized_)
+      throw std::logic_error(
+          "\nStep function for Implicit Euler time integration was used before "
+          "SetUp.\n");
 
-            sd.updateRHS(t + timestep_);
-            const Eigen::VectorXd& b = sd.getVector();
+    sd.updateRHS(t + timestep_);
+    const Eigen::VectorXd& b = sd.getVector();
 
-            // Create temporary to avoid aliasing
-            Eigen::VectorXd tmp = u + timestep_ * b;
-            u = LUsolver_.solve(tmp);
+    // Create temporary to avoid aliasing
+    Eigen::VectorXd tmp = u + timestep_ * b;
+    u = LUsolver_.solve(tmp);
 
-            if (LUsolver_.info() != Eigen::Success) throw std::runtime_error("IE solve failed\n");
-        };
+    if (LUsolver_.info() != Eigen::Success)
+      throw std::runtime_error("IE solve failed\n");
+  };
 
-        // Virtual factory for timestep remainder operations. Note that the clone does not transfer precomputed matrices. The caller must invoke setUp() on the clone.
-        std::unique_ptr<TimeIntegrator> cloneWithTimestep(double timestep) const override
-        {
-            return std::make_unique<ImplicitEuler>(timestep);
-        }
+  // Virtual factory for timestep remainder operations. Note that the clone does
+  // not transfer precomputed matrices. The caller must invoke setUp() on the
+  // clone.
+  std::unique_ptr<TimeIntegrator> cloneWithTimestep(
+      double timestep) const override {
+    return std::make_unique<ImplicitEuler>(timestep);
+  }
 };
 
-} // namespace
-#endif // ifndef
+}  // namespace heat2d::ode
+#endif  // ifndef

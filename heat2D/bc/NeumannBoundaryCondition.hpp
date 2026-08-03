@@ -3,17 +3,17 @@
 
 #include "BoundaryCondition.hpp"
 
-namespace heat2d::bc
-{
+namespace heat2d::bc {
 
-class NeumannBoundaryCondition : public BoundaryCondition
-{
-    public: 
-        NeumannBoundaryCondition(std::function<double (double, double, double)> f) 
-        : BoundaryCondition(f) {};
+class NeumannBoundaryCondition : public BoundaryCondition {
+ public:
+  NeumannBoundaryCondition(std::function<double(double, double, double)> f)
+      : BoundaryCondition(f) {};
 
-        BoundaryConditionType getType() const override {return BoundaryConditionType::Neumann;};
+  BoundaryConditionType getType() const override {
+    return BoundaryConditionType::Neumann;
+  };
 };
 
-} // namespace
-#endif // ifndef NEUMANNBOUNDARYCONDITION_HPP
+}  // namespace heat2d::bc
+#endif  // ifndef NEUMANNBOUNDARYCONDITION_HPP

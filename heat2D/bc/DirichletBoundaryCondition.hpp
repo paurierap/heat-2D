@@ -3,17 +3,17 @@
 
 #include "BoundaryCondition.hpp"
 
-namespace heat2d::bc
-{
+namespace heat2d::bc {
 
-class DirichletBoundaryCondition : public BoundaryCondition
-{
-    public: 
-        DirichletBoundaryCondition(std::function<double (double, double, double)> f) 
-        : BoundaryCondition(f) {};
+class DirichletBoundaryCondition : public BoundaryCondition {
+ public:
+  DirichletBoundaryCondition(std::function<double(double, double, double)> f)
+      : BoundaryCondition(f) {};
 
-        BoundaryConditionType getType() const override {return BoundaryConditionType::Dirichlet;};
+  BoundaryConditionType getType() const override {
+    return BoundaryConditionType::Dirichlet;
+  };
 };
 
-} // namespace
-#endif // ifndef DIRICHLETBOUNDARYCONDITION_HPP
+}  // namespace heat2d::bc
+#endif  // ifndef DIRICHLETBOUNDARYCONDITION_HPP

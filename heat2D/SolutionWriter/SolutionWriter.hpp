@@ -9,35 +9,34 @@
 
 #include "Mesh2D.hpp"
 
-class SolutionWriter
-{
-    private:
-        std::ofstream filename_;
+class SolutionWriter {
+ private:
+  std::ofstream filename_;
 
-    public: 
-        SolutionWriter(const std::string& filename) : filename_(filename)
-        {
-            if (!filename_.is_open()) throw std::runtime_error("Could not open file to write solution\n");
+ public:
+  SolutionWriter(const std::string& filename) : filename_(filename) {
+    if (!filename_.is_open())
+      throw std::runtime_error("Could not open file to write solution\n");
 
-            // Write header for output file
-            filename_ << "x,y,u,t\n";
-        }
+    // Write header for output file
+    filename_ << "x,y,u,t\n";
+  }
 
-        ~SolutionWriter() = default;
+  ~SolutionWriter() = default;
 
-        // Make uncopyable
-        SolutionWriter(const SolutionWriter&) = delete;
-        SolutionWriter& operator=(const SolutionWriter&) = delete;
+  // Make uncopyable
+  SolutionWriter(const SolutionWriter&) = delete;
+  SolutionWriter& operator=(const SolutionWriter&) = delete;
 
-        void write(const mesh::Mesh2D& mesh, const Eigen::VectorXd& solution,  double t)
-        {
-            std::vector<mesh::Node2D> nodes = mesh.getNodes();
+  void write(const mesh::Mesh2D& mesh, const Eigen::VectorXd& solution,
+             double t) {
+    std::vector<mesh::Node2D> nodes = mesh.getNodes();
 
-            for(const auto& node : nodes)
-            {
-                filename_ << node.x_ << "," << node.y_ << "," << solution[node.nodeID_] << "," << t << "\n";
-            }
-        }
+    for (const auto& node : nodes) {
+      filename_ << node.x_ << "," << node.y_ << "," << solution[node.nodeID_]
+                << "," << t << "\n";
+    }
+  }
 };
 
 #endif

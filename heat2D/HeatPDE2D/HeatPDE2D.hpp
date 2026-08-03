@@ -9,85 +9,89 @@
 #include "SpatialDiscretization2D.hpp"
 #include "TimeIntegrator.hpp"
 
-namespace heat2d
-{
+namespace heat2d {
 
-class HeatPDE2D
-{
-    private:
-        solver::SpatialDiscretization2D& spatial_discretization_;
-        ode::TimeIntegrator& time_integrator_;
-        
-        // Initial condition
-        std::function<double (double, double)> u_start_;
-        
-        double t_current_;
-        Eigen::VectorXd u_current_;
+class HeatPDE2D {
+ private:
+  solver::SpatialDiscretization2D& spatial_discretization_;
+  ode::TimeIntegrator& time_integrator_;
 
-    public:
-        HeatPDE2D(solver::SpatialDiscretization2D& spatial_discretization, ode::TimeIntegrator& time_integrator, double t_start, std::function<double (double, double)> u_start) 
-        : spatial_discretization_(spatial_discretization),
+  // Initial condition
+  std::function<double(double, double)> u_start_;
+
+  double t_current_;
+  Eigen::VectorXd u_current_;
+
+ public:
+  HeatPDE2D(solver::SpatialDiscretization2D& spatial_discretization,
+            ode::TimeIntegrator& time_integrator, double t_start,
+            std::function<double(double, double)> u_start)
+      : spatial_discretization_(spatial_discretization),
         time_integrator_(time_integrator),
         u_start_(u_start),
-        t_current_(t_start)
-        {
-            spatial_discretization_.discretize();
-            
-            u_current_ = spatial_discretization_.reduce(u_start);
-            
-            // Cache necessary matrices (depending on the time integration scheme)
-            time_integrator_.setUp(spatial_discretization_);
-        };
+        t_current_(t_start) {
+    spatial_discretization_.discretize();
 
-        // Getter
-        Eigen::VectorXd getSolution() const {return spatial_discretization_.fillDirichletNodes(u_current_, t_current_);};
+    u_current_ = spatial_discretization_.reduce(u_start);
 
-        // DefaultCallback generates a default dummy function that does nothing when no callback function is provided.
-        struct DefaultCallback 
-        {
-            void operator()(double, const Eigen::VectorXd&) const {}
-        };
+    // Cache necessary matrices (depending on the time integration scheme)
+    time_integrator_.setUp(spatial_discretization_);
+  };
 
-        // The callback option is used to provide IO support to a user. This function is called every step using the current time t and the solution vector. This way, the user can choose if the solution is to be outputted and with which frequency by means of a lambda function.
-        template <typename CallbackFunction = DefaultCallback>
-        void integrate(double t_end, CallbackFunction&& callback = {})
-        {
-            if (t_end <= t_current_) throw std::invalid_argument("t_end must be larger than current time.");
+  // Getter
+  Eigen::VectorXd getSolution() const {
+    return spatial_discretization_.fillDirichletNodes(u_current_, t_current_);
+  };
 
-            const double dt = time_integrator_.getTimestep();
-            const int n_steps = static_cast<int>(std::floor((t_end - t_current_) / dt));
-            int step_count = 0;
+  // DefaultCallback generates a default dummy function that does nothing when
+  // no callback function is provided.
+  struct DefaultCallback {
+    void operator()(double, const Eigen::VectorXd&) const {}
+  };
 
-            std::cout << "\nIntegrating from t = " << t_current_ << " to t = " << t_end << "...\n";
+  // The callback option is used to provide IO support to a user. This function
+  // is called every step using the current time t and the solution vector. This
+  // way, the user can choose if the solution is to be outputted and with which
+  // frequency by means of a lambda function.
+  template <typename CallbackFunction = DefaultCallback>
+  void integrate(double t_end, CallbackFunction&& callback = {}) {
+    if (t_end <= t_current_)
+      throw std::invalid_argument("t_end must be larger than current time.");
 
-            for (int step_count = 0; step_count < n_steps; ++step_count)
-            {
-                time_integrator_.step(spatial_discretization_, t_current_, u_current_);
-                t_current_ += dt;
-            
-                // For IO of the solution
-                callback(t_current_, getSolution());
-            }
-            
-            const double remainder = t_end - t_current_;
-            if (remainder > 1e-10 * dt)
-            {
-                std::unique_ptr<ode::TimeIntegrator> tail = time_integrator_.cloneWithTimestep(remainder);
-                tail->setUp(spatial_discretization_);
-                tail->step(spatial_discretization_, t_current_, u_current_);
+    const double dt = time_integrator_.getTimestep();
+    const int n_steps = static_cast<int>(std::floor((t_end - t_current_) / dt));
+    int step_count = 0;
 
-                t_current_ = t_end;
+    std::cout << "\nIntegrating from t = " << t_current_ << " to t = " << t_end
+              << "...\n";
 
-                // For IO of the solution
-                callback(t_current_, getSolution());
-            }
+    for (int step_count = 0; step_count < n_steps; ++step_count) {
+      time_integrator_.step(spatial_discretization_, t_current_, u_current_);
+      t_current_ += dt;
 
-            t_current_ = t_end;
+      // For IO of the solution
+      callback(t_current_, getSolution());
+    }
 
-            std::cout << "  -> Integration completed.\n\n";
-        }
+    const double remainder = t_end - t_current_;
+    if (remainder > 1e-10 * dt) {
+      std::unique_ptr<ode::TimeIntegrator> tail =
+          time_integrator_.cloneWithTimestep(remainder);
+      tail->setUp(spatial_discretization_);
+      tail->step(spatial_discretization_, t_current_, u_current_);
+
+      t_current_ = t_end;
+
+      // For IO of the solution
+      callback(t_current_, getSolution());
+    }
+
+    t_current_ = t_end;
+
+    std::cout << "  -> Integration completed.\n\n";
+  }
 };
 
-} // namespace
+}  // namespace heat2d
 
-#endif // HEATPDE2D_HPP
+#endif  // HEATPDE2D_HPP
