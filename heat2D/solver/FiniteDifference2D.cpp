@@ -33,7 +33,9 @@ FiniteDifference2D::FiniteDifference2D(
   // Resize arrays for reduced space
   std::size_t local_space_size = local_to_global_.size();
   tripletList.reserve(5 * local_space_size);
-  matrix_.resize(local_space_size, local_space_size);
+  matrixK_.resize(local_space_size, local_space_size);
+  matrixM_.resize(local_space_size, local_space_size);
+  matrixM_.setIdentity();
   b_.resize(local_space_size);
 }
 
@@ -60,7 +62,7 @@ void FiniteDifference2D::discretize() {
 
   applyLaplacian();
   applyBoundaryConditions();
-  matrix_.setFromTriplets(tripletList.begin(), tripletList.end());
+  matrixK_.setFromTriplets(tripletList.begin(), tripletList.end());
 
   std::cout << "  -> Spatial discretization was successful.\n";
 }
@@ -334,26 +336,26 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced() {
   // Direct LDL^T factorization (only if A is SPD)
   if (isMatrixSPD) {
     Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
-    ldlt.compute(-matrix_);
+    ldlt.compute(-matrixK_);
     if (ldlt.info() != Eigen::Success)
       throw std::runtime_error("LDLT factorization failed\n");
 
     reduced_sol_ = ldlt.solve(b_);
 
-    Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
+    Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
     if (residual.norm() / b_.norm() > 1e-10)
       throw std::runtime_error("LDLT solve residual too large");
   } else  // Fall back to LU
   {
     Eigen::SparseLU<Eigen::SparseMatrix<double>> lu;
 
-    lu.compute(-matrix_);
+    lu.compute(-matrixK_);
     if (lu.info() != Eigen::Success)
       throw std::runtime_error("LU factorization failed\n");
 
     reduced_sol_ = lu.solve(b_);
 
-    Eigen::VectorXd residual = (-matrix_) * reduced_sol_ - b_;
+    Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
     if (residual.norm() / b_.norm() > 1e-10)
       throw std::runtime_error("LU solve residual too large");
   }

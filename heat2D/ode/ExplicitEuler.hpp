@@ -10,20 +10,26 @@
 namespace heat2d::ode {
 
 class ExplicitEuler : public TimeIntegrator {
+ private:
+  // TO DO: Consider lumping the mass matrix from FEM.
+  mutable Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> Msolver_;
+
  public:
   ExplicitEuler(double timestep) : TimeIntegrator(timestep) {};
 
-  void setUp(const solver::SpatialDiscretization2D& sd) override {};
+  void setUp(const solver::SpatialDiscretization2D& sd) override {
+    Msolver_.compute(sd.getMatrixM());
+  };
 
   void step(solver::SpatialDiscretization2D& sd, double t,
             Eigen::VectorXd& u) const override {
     sd.updateRHS(t);
 
-    const Eigen::SparseMatrix<double>& A = sd.getMatrix();
+    const Eigen::SparseMatrix<double>& K = sd.getMatrixK();
     const Eigen::VectorXd& b = sd.getVector();
 
     // Prevent aliasing from expression templating in Eigen using eval()
-    u += (timestep_ * (A * u + b)).eval();
+    u += (timestep_ * Msolver_.solve(K * u + b)).eval();
   };
 
   // Virtual factory for timestep remainder operations. Note that the clone does

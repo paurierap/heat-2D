@@ -41,23 +41,20 @@ class CrankNicolson : public TimeIntegrator {
   CrankNicolson(double timestep) : TimeIntegrator(timestep) {};
 
   void setUp(const solver::SpatialDiscretization2D& sd) override {
-    const SparseMatrixRM& A = sd.getMatrix();
+    const SparseMatrixRM& M = sd.getMatrixM();
+    const SparseMatrixRM& K = sd.getMatrixK();
+
     isMatrixSPD_ = sd.isSPD();
 
     // Heuristic for iterative solver choice. This is a very rough estimate and
     // should be tuned based on benchmarking results.
-    useIterativeSolver_ = (timestep_ * A.rows() < 200.);
+    useIterativeSolver_ = (timestep_ * M.rows() < 200.);
 
-    b_.resize(A.rows());
-    rhs_.resize(A.rows());
+    b_.resize(M.rows());
+    rhs_.resize(M.rows());
 
-    M_lhs_ = SparseMatrixRM(A.rows(), A.cols());
-    M_lhs_.setIdentity();
-    M_lhs_ -= 0.5 * timestep_ * A;
-
-    M_rhs_ = SparseMatrixRM(A.rows(), A.cols());
-    M_rhs_.setIdentity();
-    M_rhs_ += 0.5 * timestep_ * A;
+    M_lhs_ = M - 0.5 * timestep_ * K;
+    M_rhs_ = M + 0.5 * timestep_ * K;
 
     // Try an SPD factorization if the matrix is SPD
     if (isMatrixSPD_) {

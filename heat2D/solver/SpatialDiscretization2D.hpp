@@ -20,6 +20,7 @@ using BoundaryConditions =
     std::unordered_map<std::string, std::shared_ptr<bc::BoundaryCondition>>;
 using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
+// Discretize the heat equation in space to build the ODE system M * du/dt = K * u + b. 
 class SpatialDiscretization2D {
  private:
   // TODO: Study change from reference to mesh to using a shared_ptr or even
@@ -31,7 +32,8 @@ class SpatialDiscretization2D {
   std::function<double(double, double)> alpha_;
 
   // Sparse matrix and tripletlist for assembly
-  SparseMatrixRM matrix_;
+  SparseMatrixRM matrixM_;
+  SparseMatrixRM matrixK_;
   std::vector<Eigen::Triplet<double>> tripletList;
   Eigen::VectorXd b_;
 
@@ -75,7 +77,8 @@ class SpatialDiscretization2D {
       const Eigen::Ref<const Eigen::VectorXd>&, double) const = 0;
 
   // Getters
-  inline const SparseMatrixRM& getMatrix() const { return matrix_; };
+  inline const SparseMatrixRM& getMatrixM() const { return matrixM_; };
+  inline const SparseMatrixRM& getMatrixK() const { return matrixK_; };
   inline const Eigen::VectorXd& getVector() const { return b_; };
   inline const bc::BoundaryCondition& getBoundaryCondition(
       const std::string& tag) const {

@@ -21,11 +21,10 @@ class ImplicitEuler : public TimeIntegrator {
   ImplicitEuler(double timestep) : TimeIntegrator(timestep) {};
 
   void setUp(const solver::SpatialDiscretization2D& sd) override {
-    const Eigen::SparseMatrix<double>& A = sd.getMatrix();
+    const Eigen::SparseMatrix<double>& M = sd.getMatrixM();
+    const Eigen::SparseMatrix<double>& K = sd.getMatrixK();
 
-    M_lhs_ = Eigen::SparseMatrix<double>(A.rows(), A.cols());
-    M_lhs_.setIdentity();
-    M_lhs_ -= timestep_ * A;
+    M_lhs_ = M - timestep_ * K;
 
     LUsolver_.compute(M_lhs_);
 
