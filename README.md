@@ -1,4 +1,4 @@
-# Heat2D: a 2D heat equation solver
+#Heat2D : a 2D heat equation solver
 
 [![Tests](https://github.com/paurierap/heat-2D/actions/workflows/ci-tests.yml/badge.svg)](https://github.com/paurierap/heat-2D/actions/workflows/ci-tests.yml)
 
@@ -34,7 +34,10 @@ The project is centered around the association of classes representing the diffe
 
 ### Preliminaries
 
-The aforementioned parabolic PDE is fully characterized by defining the physical domain $\Omega\in\mathbb{R}^2$ alongside boundary conditions in the border $\partial\Omega =\partial\Omega_{l}\cup\partial\Omega_{r}\cup\partial\Omega_{b}\cup\partial\Omega_{t}$ (representing, respectively: left, right, bottom and top boundaries), thermal diffusivity $\alpha$, source $f$, and initial condition $u_0$ alongside an initial time $t_0$.
+The aforementioned parabolic PDE is fully characterized by defining the physical domain $\Omega\in\mathbb{R}^2$ alongside boundary conditions in the border $\partial\Omega =\partial\Omega_{
+  l}\cup\partial\Omega_{
+  r}\cup\partial\Omega_{
+  b}\cup\partial\Omega_{t}$ (representing, respectively: left, right, bottom and top boundaries), thermal diffusivity $\alpha$, source $f$, and initial condition $u_0$ alongside an initial time $t_0$.
 
 Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-called Poisson (Laplace if $f=0$) equation. This elliptic PDE can also be solved and does not require an initial condition.
 
@@ -48,7 +51,7 @@ Possibly $\partial_t u=0$ and $-\nabla\cdot(\alpha\nabla u) = f$, in the so-call
 
 Another abstract base class is represented in ```mesh::Mesh2D```, currently implemented by ```mesh::StructuredMesh2D``` (unstructured meshes are planned for the future). This can be instantiated by providing the utility ```struct Domain2D```, which defines the axis-aligned 2D rectangular domain $\Omega$ based on the coordinates of its sides: $x_l$, $x_r$, $y_b$ and $y_t$ (in this order); along with the number of desired nodes in each direction, $n_x$ and $n_y$.
 
-Boundary conditions are specified as a map from ```DomainSide``` to an ```std::shared_ptr<BoundaryCondition>>```, supporting both ```DirichletBoundaryCondition``` and ```NeumannBoundaryCondition```. Each takes a ```std::function<double(double,double,double)>``` describing the boundary value as a function of position and time.
+Boundary conditions are specified as a string-tagged ```bc::BoundaryConditions``` map to ```std::shared_ptr<bc::BoundaryCondition>```, supporting ```DirichletBoundaryCondition```, ```NeumannBoundaryCondition```, and ```RobinBoundaryCondition```. Each takes a ```std::function<double(double,double,double)>``` describing the boundary value as a function of position and time.
 
 Finally, ```mesh::SpatialDiscretization2D``` uses ```std::function<double(double,double,double)>``` to describe the source term $f$, and ```std::function<double(double,double)>``` for the diffusivity $\alpha$.
 
@@ -61,7 +64,8 @@ Internally, the problem is discretized using all these constructs into an ```Eig
 - ```ode::ExplicitEuler```: a first-order explicit time integrator. For the time being, no stability checks are made. It's up to the user to ensure the CFL condition holds
   
 ```math
-\frac{dt}{h^2} < \frac{1}{4\alpha}
+\frac{dt}{h^2} < \frac{1}{
+  4\alpha}
 ```
 
 - ```ode::ImplicitEuler```: a first-order implicit time integrator. The constant part of the resulting system of equations is pre-computed for increased performance using ```setUp```. If used without ```HeatPDE2D```, ```setUp``` is **must** be run *before* ```step```.
@@ -86,7 +90,7 @@ ctest --test-dir build --verbose
 To build the examples:
 
 ```bash
-cmake -S . -B build -DBUILD_EXAMPLES=ON
+cmake -S . -B build -DHEAT2D_BUILD_EXAMPLES=ON
 cmake --build build --parallel
 ./build/examples/heat2d_examples
 ```
@@ -111,7 +115,8 @@ Furthermore, we add a moving source term around a circle of radius $r=0.25$ cent
 with
 
 ```math
-(\nabla u\cdot\mathbb{\hat{n}})|_{\partial\Omega_i}=0,\ \text{and}\ u (x,y,0) = 0.
+(\nabla u\cdot\mathbb{\hat{n}})|_{\partial\Omega_i}=0,\ \text{
+  and}\ u (x,y,0) = 0.
 ```
 
 ### Meshing the domain
@@ -139,15 +144,17 @@ First, the boundary conditions over $\partial\Omega$ need to be specified. Since
 ```cpp
 #include <functional>
 
+#include "BoundaryConditions.hpp"
 #include "NeumannBoundaryCondition.hpp"
 
-auto zeroBC = [](double, double, double){return 0.0;};
+auto zeroBC = [](double, double, double){
+  return 0.0;};
 
-mesh::BoundaryConditions bc;
-bc[mesh::DomainSide::Left]   = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
-bc[mesh::DomainSide::Right]  = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
-bc[mesh::DomainSide::Bottom] = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
-bc[mesh::DomainSide::Top]    = std::make_shared<mesh::NeumannBoundaryCondition>(zeroBC);
+bc::BoundaryConditions bc;
+bc["Left"]   = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
+bc["Right"]  = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
+bc["Bottom"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
+bc["Top"]    = std::make_shared<bc::NeumannBoundaryCondition>(zeroBC);
 ```
 
 In addition, we must define the diffusivity $\alpha(x,t)$ and source $f(x,y,t)$ terms:
@@ -156,16 +163,16 @@ In addition, we must define the diffusivity $\alpha(x,t)$ and source $f(x,y,t)$ 
 // Thermal diffusivity
 auto alpha = [](double x, double y) 
 {
-    double r = std::sqrt((x-0.5)*(x-0.5) + (y-0.5)*(y-0.5));
-    return 0.005 + 0.02 * std::exp(-8.0 * r * r);
+  double r = std::sqrt((x - 0.5) * (x - 0.5) + (y - 0.5) * (y - 0.5));
+  return 0.005 + 0.02 * std::exp(-8.0 * r * r);
 };
 
 // Moving source
 auto source = [](double x, double y, double t) 
 {
-    double cx = 0.5 + 0.25 * std::cos(t);
-    double cy = 0.5 + 0.25 * std::sin(t);
-    return 1.0 * std::exp(-60.0 * ((x-cx)*(x-cx) + (y-cy)*(y-cy)));
+  double cx = 0.5 + 0.25 * std::cos(t);
+  double cy = 0.5 + 0.25 * std::sin(t);
+  return 1.0 * std::exp(-60.0 * ((x - cx) * (x - cx) + (y - cy) * (y - cy)));
 };
 ```
 
@@ -190,7 +197,8 @@ double dt = 0.1;
 ode::CrankNicolson ti(dt);
 
 // Initial condition
-auto u0 = [](double, double){return 0.0;};
+auto u0 = [](double, double){
+  return 0.0;};
 
 // Initialize heat equation solver
 double t0 = 0;
@@ -213,9 +221,9 @@ double tf = 4.0 * M_PI;
 int step = 0;
 solver.integrate(tf, [&](double t, const Eigen::VectorXd& u)
 {
-    // Write every 2 steps
-    if (step % 2 == 0) writer.write(mesh, u, t);
-    ++step;
+  // Write every 2 steps
+  if (step % 2 == 0) writer.write(mesh, u, t);
+  ++step;
 });
 ```
 

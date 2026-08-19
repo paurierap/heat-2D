@@ -9,18 +9,15 @@
 #include <unordered_map>
 #include <vector>
 
-#include "BoundaryCondition.hpp"
+#include "BoundaryConditions.hpp"
 #include "Mesh2D.hpp"
 
 namespace heat2d::solver {
 
-// Pointer required for run-time polymorphism and to be used in different
-// instances of the class
-using BoundaryConditions =
-    std::unordered_map<std::string, std::shared_ptr<bc::BoundaryCondition>>;
+using BoundaryConditions = bc::BoundaryConditions;
 using SparseMatrixRM = Eigen::SparseMatrix<double, Eigen::RowMajor>;
 
-// Discretize the heat equation in space to build the ODE system M * du/dt = K * u + b. 
+// Discretize the heat equation in space to build M * du/dt = K * u + b.
 class SpatialDiscretization2D {
  private:
   // TODO: Study change from reference to mesh to using a shared_ptr or even

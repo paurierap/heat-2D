@@ -6,13 +6,15 @@ target_include_directories(bc
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-# Build BoundaryCondition test
-add_executable(BoundaryCondition_test
-  BoundaryCondition.test.cpp
-)
+if(HEAT2D_BUILD_TESTS)
+  # Build BoundaryCondition test
+  add_executable(BoundaryCondition_test
+    BoundaryCondition.test.cpp
+  )
 
-target_link_libraries(BoundaryCondition_test
-  GTest::gtest_main
-)
+  target_link_libraries(BoundaryCondition_test
+    GTest::gtest_main
+  )
 
-gtest_discover_tests(BoundaryCondition_test)
+  gtest_discover_tests(BoundaryCondition_test)
+endif()

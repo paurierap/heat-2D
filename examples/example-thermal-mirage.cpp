@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "BoundaryConditions.hpp"
 #include "CrankNicolson.hpp"
 #include "DirichletBoundaryCondition.hpp"
 #include "FiniteDifference2D.hpp"

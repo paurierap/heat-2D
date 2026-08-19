@@ -4,6 +4,7 @@
 #include <iostream>
 #include <string>
 
+#include "BoundaryConditions.hpp"
 #include "CrankNicolson.hpp"
 #include "FiniteDifference2D.hpp"
 #include "HeatPDE2D.hpp"

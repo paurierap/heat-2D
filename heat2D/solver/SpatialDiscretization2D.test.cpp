@@ -56,7 +56,7 @@ TEST(FiniteDifference2D, LaplacianComponents) {
   solver::FiniteDifference2D fd(alpha, mesh, bc, source);
 
   fd.discretize();
-  const Eigen::SparseMatrix<double>& A = fd.getMatrix();
+  const auto& A = fd.getMatrixK();
   double dx = mesh.getDx();
   double dy = mesh.getDy();
 
@@ -102,7 +102,7 @@ TEST(FiniteDifference2D, LaplacianVanishes) {
 
   // A: interior Laplacian matrix
   // b: boundary contribution from Dirichlet nodes
-  const auto& A = fd.getMatrix();
+  const auto& A = fd.getMatrixK();
   Eigen::VectorXd b = fd.getVector(), exact(A.cols());
 
   ASSERT_EQ(A.cols(), mesh.getInnerNodes().size());
@@ -257,7 +257,7 @@ TEST(FiniteDifference2D, LaplaceNullSpace) {
   solver::FiniteDifference2D fd(alpha, mesh, bc, source);
   fd.discretize();
 
-  const Eigen::SparseMatrix<double>& A = fd.getMatrix();
+  const auto& A = fd.getMatrixK();
   Eigen::VectorXd ones = Eigen::VectorXd::Constant(A.cols(), 1.0);
 
   EXPECT_NEAR((A * ones).lpNorm<Eigen::Infinity>(), 0.0, 1e-12);

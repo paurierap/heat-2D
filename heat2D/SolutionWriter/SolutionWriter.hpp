@@ -9,6 +9,8 @@
 
 #include "Mesh2D.hpp"
 
+namespace heat2d {
+
 class SolutionWriter {
  private:
   std::ofstream filename_;
@@ -30,7 +32,7 @@ class SolutionWriter {
 
   void write(const mesh::Mesh2D& mesh, const Eigen::VectorXd& solution,
              double t) {
-    std::vector<mesh::Node2D> nodes = mesh.getNodes();
+    const std::vector<mesh::Node2D>& nodes = mesh.getNodes();
 
     for (const auto& node : nodes) {
       filename_ << node.x_ << "," << node.y_ << "," << solution[node.nodeID_]
@@ -38,5 +40,7 @@ class SolutionWriter {
     }
   }
 };
+
+}  // namespace heat2d
 
 #endif

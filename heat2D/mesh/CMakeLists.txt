@@ -3,28 +3,30 @@ add_library(mesh
   StructuredMesh2D.cpp
 )
 
-# Build Mesh2D test
-add_executable(Mesh2D_test
-  Mesh2D.test.cpp
-)
-
 target_include_directories(mesh
   PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
-target_link_libraries(Mesh2D_test
-  mesh
-  GTest::gtest_main
-)
+if(HEAT2D_BUILD_TESTS)
+  # Build Mesh2D test
+  add_executable(Mesh2D_test
+    Mesh2D.test.cpp
+  )
 
-configure_file(
-    ${CMAKE_CURRENT_SOURCE_DIR}/test_shape.msh
-    ${CMAKE_CURRENT_BINARY_DIR}/test_shape.msh
-    COPYONLY
-)
+  target_link_libraries(Mesh2D_test
+    mesh
+    GTest::gtest_main
+  )
 
-gtest_discover_tests(Mesh2D_test DISCOVERY_TIMEOUT 30)
+  configure_file(
+      ${CMAKE_CURRENT_SOURCE_DIR}/test_shape.msh
+      ${CMAKE_CURRENT_BINARY_DIR}/test_shape.msh
+      COPYONLY
+  )
+
+  gtest_discover_tests(Mesh2D_test DISCOVERY_TIMEOUT 30)
+endif()
 
 # Verify gmsh is found
 if(HEAT2D_ENABLE_GMSH)

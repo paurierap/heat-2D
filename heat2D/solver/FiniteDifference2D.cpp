@@ -238,10 +238,7 @@ void FiniteDifference2D::updateDirichletBoundaryCondition(
 
     std::size_t neighbor_local = global_to_local_[neighbor_inward];
 
-    // Add contribution to the equation of the inward neighbor (corresponding to
-    // the row of that node in vector b)
-    // double h = (inward_normal == DomainSide::Left || inward_normal ==
-    // DomainSide::Right) ? mesh_.getDx() : mesh_.getDy();
+    // Add contribution to the inward neighbor's row in vector b.
 
     if (inx) {
       double h = mesh_.getDx();

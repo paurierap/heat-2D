@@ -5,24 +5,36 @@ project(heat2d)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Additional compiler flags
-add_compile_options(-march=native)
+if(CMAKE_SOURCE_DIR STREQUAL PROJECT_SOURCE_DIR)
+  set(HEAT2D_IS_TOP_LEVEL ON)
+else()
+  set(HEAT2D_IS_TOP_LEVEL OFF)
+endif()
 
-# Google Tests:
-include(FetchContent)
-FetchContent_Declare(
-  googletest
-  #URL https://github.com/google/googletest/archive/refs/tags/v1.17.0.zip
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG v1.17.0
-)
-FetchContent_MakeAvailable(googletest)
+option(HEAT2D_ENABLE_NATIVE_ARCH "Build with -march=native" OFF)
+option(HEAT2D_BUILD_TESTS "Build tests" ${HEAT2D_IS_TOP_LEVEL})
+option(HEAT2D_BUILD_EXAMPLES "Build examples" OFF)
+option(HEAT2D_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
-enable_testing()
-include(GoogleTest)
+if(HEAT2D_ENABLE_NATIVE_ARCH)
+  add_compile_options(-march=native)
+endif()
+
+if(HEAT2D_BUILD_TESTS)
+  include(FetchContent)
+  FetchContent_Declare(
+    googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG v1.17.0
+  )
+  FetchContent_MakeAvailable(googletest)
+
+  enable_testing()
+  include(GoogleTest)
+endif()
 
 # Try to find Eigen
-find_package(Eigen3 REQUIRED)
+find_package(Eigen3 QUIET)
 
 if(NOT TARGET Eigen3::Eigen)
   message(STATUS "Eigen not found system-wide; fetching with FetchContent")
@@ -46,9 +58,6 @@ option(HEAT2D_ENABLE_GMSH "Enable Gmsh support for unstructured meshes" ${Gmsh_F
 
 # Add subdirectories
 add_subdirectory(heat2D)
-
-option(HEAT2D_BUILD_EXAMPLES "Build examples" OFF)
-option(HEAT2D_BUILD_BENCHMARKS "Build benchmarks" OFF)
 
 if(HEAT2D_BUILD_EXAMPLES)
     add_subdirectory(examples)

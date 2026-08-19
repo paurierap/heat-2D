@@ -9,29 +9,26 @@
 
 #include "Mesh2D.hpp"
 
-namespace heat2d::mesh
-{
+namespace heat2d::mesh {
 
-class UnstructuredMesh2D : public Mesh2D
-{
-    private:
-        double meshSize_; 
+class UnstructuredMesh2D : public Mesh2D {
+ private:
+  double meshSize_;
 
-    protected:
-        void meshDomain() override;
+ protected:
+  void meshDomain() override;
 
-    public:
+ public:
+  // Constructors
+  UnstructuredMesh2D(const std::string& gmshFile);
 
-        // Constructors
-        UnstructuredMesh2D(const std::string& gmshFile);
-        
-        // Getters
-        inline double getMeshSize() const override {return meshSize_;};
+  // Getters
+  inline double getMeshSize() const override { return meshSize_; };
 
-        // Specific helpers
-        double getElementArea(std::size_t elementID) const override;
+  // Specific helpers
+  double getElementArea(std::size_t elementID) const override;
 };
 
-};// namespace
+};  // namespace heat2d::mesh
 
-#endif // ifndef UNSTRUCTUREDMESH_HPP
+#endif  // ifndef UNSTRUCTUREDMESH_HPP
