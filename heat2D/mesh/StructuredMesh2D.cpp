@@ -120,7 +120,7 @@ void StructuredMesh2D::meshDomain() {
 
 std::optional<std::size_t> StructuredMesh2D::getNodeID(std::size_t i,
                                                        std::size_t j) const {
-  if (i < 0 || i >= nx_ || j < 0 || j >= ny_) return std::nullopt;
+  if (i >= nx_ || j >= ny_) return std::nullopt;
   return j * nx_ + i;
 };
 
@@ -143,7 +143,7 @@ bool StructuredMesh2D::isCorner(std::size_t nodeID) const {
 }
 
 double StructuredMesh2D::getElementArea(std::size_t elementID) const {
-  if (elementID >= element_offsets_.size() - 1)
+  if (element_offsets_.empty() || elementID + 1 >= element_offsets_.size())
     throw std::out_of_range("Invalid elementID.");
 
   return getDx() * getDy() * 0.5;

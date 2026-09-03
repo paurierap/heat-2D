@@ -60,7 +60,6 @@ class HeatPDE2D {
 
     const double dt = time_integrator_.getTimestep();
     const int n_steps = static_cast<int>(std::floor((t_end - t_current_) / dt));
-    int step_count = 0;
 
     std::cout << "\nIntegrating from t = " << t_current_ << " to t = " << t_end
               << "...\n";

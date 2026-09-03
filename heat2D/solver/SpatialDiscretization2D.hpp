@@ -4,6 +4,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -25,6 +26,9 @@ class SpatialDiscretization2D {
   const mesh::Mesh2D& mesh_;
 
  protected:
+  static constexpr std::size_t invalid_node_index =
+      std::numeric_limits<std::size_t>::max();
+
   std::function<double(double, double, double)> source_;
   std::function<double(double, double)> alpha_;
 
@@ -53,7 +57,7 @@ class SpatialDiscretization2D {
       : alpha_(alpha),
         mesh_(mesh),
         source_(source),
-        global_to_local_(mesh_.getNodes().size(), -1),
+        global_to_local_(mesh_.getNodes().size(), invalid_node_index),
         is_dirichlet_(mesh_.getNodes().size(), false),
         boundary_conditions_(boundary_conditions) {};
 
@@ -69,6 +73,8 @@ class SpatialDiscretization2D {
   // Solves Au = b for steady-state problems. For time-dependent PDEs, this is
   // unused.
   virtual Eigen::VectorXd solveSteadyState() = 0;
+
+  // Reduce solution vector to only include non-Dirichlet nodes.
   virtual Eigen::VectorXd reduce(std::function<double(double, double)>) = 0;
   virtual Eigen::VectorXd fillDirichletNodes(
       const Eigen::Ref<const Eigen::VectorXd>&, double) const = 0;

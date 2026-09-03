@@ -29,7 +29,7 @@ class Mesh2D {
   // Contains all boundary nodes
   std::vector<BoundaryNode2D> boundary_nodes_;
 
-  // Map ID from node to boundary node (-1 if inner node)
+  // Boundary nodes are mapped to boundary_nodes_; inner nodes are absent.
   std::unordered_map<std::size_t, std::size_t> node_to_boundary_node_;
 
   // Contains boundary nodes for each boundary group (tag)
@@ -59,7 +59,7 @@ class Mesh2D {
   };
   inline std::vector<std::size_t> getElementNodes(std::size_t elementID) const {
     std::vector<std::size_t> elementNodes;
-    if (elementID >= element_offsets_.size() - 1)
+    if (element_offsets_.empty() || elementID + 1 >= element_offsets_.size())
       throw std::out_of_range("Invalid elementID.");
     std::size_t start = element_offsets_[elementID];
     std::size_t end = element_offsets_[elementID + 1];

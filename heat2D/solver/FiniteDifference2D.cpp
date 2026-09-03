@@ -203,8 +203,6 @@ void FiniteDifference2D::updateRHS(double t) {
   // with a Dirichlet BC, the node (and its row in A) is omitted. If it's a
   // corner, a Dirichlet BC has preference over Neumann. If Neumann-Neumann, BCs
   // are treated naturally.
-  const std::vector<mesh::BoundaryNode2D>& boundary_nodes =
-      mesh_.getBoundaryNodes();
   for (const auto& boundary_node : mesh_.getBoundaryNodes()) {
     if (is_dirichlet_[boundary_node.nodeID_])
       updateDirichletBoundaryCondition(boundary_node, t);
@@ -340,7 +338,8 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced() {
     reduced_sol_ = ldlt.solve(b_);
 
     Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
-    if (residual.norm() / b_.norm() > 1e-10)
+    const double b_norm = b_.norm();
+    if (b_norm > 0.0 && residual.norm() / b_norm > 1e-10)
       throw std::runtime_error("LDLT solve residual too large");
   } else  // Fall back to LU
   {
@@ -353,7 +352,8 @@ Eigen::VectorXd FiniteDifference2D::solve_reduced() {
     reduced_sol_ = lu.solve(b_);
 
     Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
-    if (residual.norm() / b_.norm() > 1e-10)
+    const double b_norm = b_.norm();
+    if (b_norm > 0.0 && residual.norm() / b_norm > 1e-10)
       throw std::runtime_error("LU solve residual too large");
   }
 
