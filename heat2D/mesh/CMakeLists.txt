@@ -1,4 +1,7 @@
-# Make library:
+#=============================================================================
+# mesh - structured / unstructured meshes
+#=============================================================================
+
 add_library(mesh
   StructuredMesh2D.cpp
 )
@@ -8,8 +11,27 @@ target_include_directories(mesh
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# Optional Gmsh support; enables UnstructuredMesh2D
+if(HEAT2D_ENABLE_GMSH)
+  if(NOT Gmsh_FOUND)
+    message(FATAL_ERROR "HEAT2D_ENABLE_GMSH=ON but Gmsh was not found.")
+  endif()
+
+  target_sources(mesh
+    PRIVATE
+    UnstructuredMesh2D.cpp
+  )
+  target_link_libraries(mesh
+    PRIVATE
+    Gmsh::Gmsh
+  )
+  target_compile_definitions(mesh
+    PUBLIC
+    HEAT2D_HAS_GMSH
+  )
+endif()
+
 if(HEAT2D_BUILD_TESTS)
-  # Build Mesh2D test
   add_executable(Mesh2D_test
     Mesh2D.test.cpp
   )
@@ -19,34 +41,13 @@ if(HEAT2D_BUILD_TESTS)
     GTest::gtest_main
   )
 
+  # Required for tests that load test_shape.msh
   configure_file(
-      ${CMAKE_CURRENT_SOURCE_DIR}/test_shape.msh
-      ${CMAKE_CURRENT_BINARY_DIR}/test_shape.msh
-      COPYONLY
+    ${CMAKE_CURRENT_SOURCE_DIR}/test_shape.msh
+    ${CMAKE_CURRENT_BINARY_DIR}/test_shape.msh
+    COPYONLY
   )
 
+  # Increase discovery timeout to avoid issues on slow systems
   gtest_discover_tests(Mesh2D_test DISCOVERY_TIMEOUT 30)
-endif()
-
-# Verify gmsh is found
-if(HEAT2D_ENABLE_GMSH)
-    if(NOT Gmsh_FOUND)
-        message(FATAL_ERROR "HEAT2D_ENABLE_GMSH=ON but Gmsh was not found.")
-    endif()
-    message(STATUS "Gmsh found -- UnstructuredMesh2D enabled.")
-    
-    target_sources(mesh 
-      PRIVATE 
-      UnstructuredMesh2D.cpp
-    )
-    target_link_libraries(mesh 
-      PRIVATE 
-      Gmsh::Gmsh
-    )
-    target_compile_definitions(mesh 
-      PUBLIC
-      HEAT2D_HAS_GMSH
-    )
-else()
-    message(STATUS "Gmsh not found -- UnstructuredMesh2D disabled.")
 endif()

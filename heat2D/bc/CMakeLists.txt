@@ -1,13 +1,15 @@
-# Add header-only library
+#=============================================================================
+# bc - boundary conditions (header-only)
+#=============================================================================
+
 add_library(bc INTERFACE)
 
-target_include_directories(bc 
-  INTERFACE 
+target_include_directories(bc
+  INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
 if(HEAT2D_BUILD_TESTS)
-  # Build BoundaryCondition test
   add_executable(BoundaryCondition_test
     BoundaryCondition.test.cpp
   )

@@ -1,4 +1,7 @@
-# Add subdirectories
+#=============================================================================
+# Library subdirectories
+#=============================================================================
+
 add_subdirectory(bc)
 add_subdirectory(mesh)
 add_subdirectory(quadrature)

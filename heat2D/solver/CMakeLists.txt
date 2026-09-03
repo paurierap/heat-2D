@@ -1,4 +1,7 @@
-# Make library:
+#=============================================================================
+# solver - spatial discretization (finite difference / finite element)
+#=============================================================================
+
 add_library(solver
   FiniteDifference2D.cpp
 )
@@ -13,11 +16,10 @@ target_link_libraries(solver
   mesh
   bc
   Eigen3::Eigen
-  $<$<BOOL:${OpenMP_CXX_FOUND}>:OpenMP::OpenMP_CXX>
+  $<$<BOOL:${HEAT2D_ENABLE_OPENMP}>:OpenMP::OpenMP_CXX>
 )
 
 if(HEAT2D_BUILD_TESTS)
-  # Build SpatialDiscretization test
   add_executable(SpatialDiscretization2D_test
     SpatialDiscretization2D.test.cpp
   )
@@ -28,6 +30,6 @@ if(HEAT2D_BUILD_TESTS)
     GTest::gtest_main
   )
 
-  # Increase the timeout for test discovery to avoid issues on slow systems.
+  # Increase discovery timeout to avoid issues on slow systems
   gtest_discover_tests(SpatialDiscretization2D_test DISCOVERY_TIMEOUT 30)
 endif()

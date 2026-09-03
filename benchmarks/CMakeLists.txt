@@ -1,8 +1,11 @@
-# Build benchmark
+#=============================================================================
+# Benchmarks
+#=============================================================================
+
 add_executable(benchmark
   benchmark.cpp
 )
 
-target_link_libraries(benchmark 
+target_link_libraries(benchmark
   HeatPDE
 )
