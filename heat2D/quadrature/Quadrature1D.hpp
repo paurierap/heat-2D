@@ -9,17 +9,24 @@
 namespace heat2d::quadrature {
 
 class Quadrature1D {
+ protected:
+  Eigen::VectorXd nodes_;
+  Eigen::VectorXd weights_;
+
  public:
   virtual ~Quadrature1D() = default;
-  virtual void compute(int numPoints, Eigen::VectorXd& nodes,
-                        Eigen::VectorXd& weights) const = 0;
+  virtual void compute(int numPoints) = 0;
+
+  const Eigen::VectorXd& getNodes() const { return nodes_; }
+  const Eigen::VectorXd& getWeights() const { return weights_; }
+  int numPoints() const { return static_cast<int>(weights_.size()); }
 };
 
-// Gauss-Legendre quadrature on the domain [-1,1]. This rule is exact for polynomials with degree at most 2n-1.
+// Gauss-Legendre quadrature on the domain [-1,1]. This rule is exact for
+// polynomials with degree at most 2n-1.
 class GaussLegendre : public Quadrature1D {
  public:
-  void compute(int numPoints, Eigen::VectorXd& nodes,
-               Eigen::VectorXd& weights) const override {
+  void compute(int numPoints) override {
     if (numPoints < 1) throw std::invalid_argument("numPoints must be >= 1");
 
     // Jacobi matrix: symmetric tridiagonal, zero diagonal,
@@ -32,12 +39,12 @@ class GaussLegendre : public Quadrature1D {
     }
 
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> solver(J);
-    nodes = solver.eigenvalues();
+    nodes_ = solver.eigenvalues();
     // weight_i = 2 * (first component of i-th eigenvector)^2
-    weights = 2.0 * solver.eigenvectors().row(0).array().square();
+    weights_ = 2.0 * solver.eigenvectors().row(0).array().square();
   }
 };
 
 }  // namespace heat2d::quadrature
 
-#endif  // ifndef QUADRATURE1D_HPP
+#endif  // QUADRATURE1D_HPP

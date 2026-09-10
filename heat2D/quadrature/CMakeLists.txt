@@ -1,5 +1,5 @@
 #=============================================================================
-# quadrature - 2D quadrature rules
+# quadrature - 1D and 2D quadrature rules
 #=============================================================================
 
 # Dunavant rules for triangles
@@ -23,14 +23,14 @@ target_link_libraries(quadrature
 )
 
 if(HEAT2D_BUILD_TESTS)
-  add_executable(Quadrature2D_test
-    Quadrature2D.test.cpp
+  add_executable(Quadrature_test
+    Quadrature.test.cpp
   )
 
-  target_link_libraries(Quadrature2D_test
+  target_link_libraries(Quadrature_test
     quadrature
     GTest::gtest_main
   )
 
-  gtest_discover_tests(Quadrature2D_test)
+  gtest_discover_tests(Quadrature_test)
 endif()
