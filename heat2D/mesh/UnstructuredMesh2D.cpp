@@ -16,7 +16,9 @@ UnstructuredMesh2D::UnstructuredMesh2D(const std::string& gmshFile) : Mesh2D() {
   gmsh::initialize();
   try {
     gmsh::open(gmshFile);
+    
     meshDomain();
+    computeBoundaryEdges();
   } catch (...) {
     gmsh::finalize();
     throw std::invalid_argument("UnstructuredMesh2D: no valid file provided.");
@@ -24,15 +26,9 @@ UnstructuredMesh2D::UnstructuredMesh2D(const std::string& gmshFile) : Mesh2D() {
   gmsh::finalize();
 }
 
-#include <gmsh.h>
-
 void UnstructuredMesh2D::meshDomain() {
-  // If gmshFile is a .msh (already meshed), skip this — generate(2) can
-  // fail/no-op on files with no CAD geometry, only a stored mesh.
-  // If it's a .geo (geometry only), you need this call.
-  // gmsh::model::mesh::generate(2);
 
-  // --- 1. Nodes ---
+  // Get nodes and coordinates.
   std::vector<std::size_t> nodeTags;
   std::vector<double> coords, paramCoords;
   gmsh::model::mesh::getNodes(nodeTags, coords, paramCoords, -1, -1, false,
@@ -48,7 +44,7 @@ void UnstructuredMesh2D::meshDomain() {
     nodes_[localID] = Node2D{localID, coords[3 * i], coords[3 * i + 1]};
   }
 
-  // --- 2. Boundary groups from Physical Curve tags (dim 1) ---
+  // Get boundary nodes and groupings.
   std::vector<std::pair<int, int>> physicalGroups;
   gmsh::model::getPhysicalGroups(physicalGroups, 1);
 
@@ -64,6 +60,7 @@ void UnstructuredMesh2D::meshDomain() {
     for (std::size_t entityTag : entityTags) {
       std::vector<std::size_t> entityNodeTags;
       std::vector<double> entityCoords, entityParamCoords;
+
       // includeBoundary=true also grabs the curve's endpoint nodes,
       // so corner nodes shared between two tags get both tags.
       gmsh::model::mesh::getNodes(entityNodeTags, entityCoords,
@@ -92,12 +89,12 @@ void UnstructuredMesh2D::meshDomain() {
     }
   }
 
-  // --- 3. Inner nodes ---
+  // Get inner nodes
   for (std::size_t i = 0; i < nodes_.size(); ++i) {
     if (isNodeInner(i)) inner_nodes_.push_back(i);
   }
 
-  // --- 4. Elements (all 2D types present, e.g. triangles) ---
+  // Get elements
   std::vector<int> elementTypes;
   std::vector<std::vector<std::size_t>> elementTags, elementNodeTags;
   gmsh::model::mesh::getElements(elementTypes, elementTags, elementNodeTags, 2,

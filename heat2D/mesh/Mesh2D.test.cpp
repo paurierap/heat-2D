@@ -153,7 +153,24 @@ TEST_F(StructuredMesh2DTest, BoundaryNodesAssignation) {
 }
 
 // =============================================================================
-// Test 10 - Check that getInnerNodes() and getBoundaryNodes() return,
+// Test 10 - Boundary edges are correctly derived for a structured mesh
+// =============================================================================
+TEST_F(StructuredMesh2DTest, BoundaryEdgeDerivation) {
+  EXPECT_EQ(mesh.getBoundaryEdgeNodes("Bottom").size(), nx - 1);
+  EXPECT_EQ(mesh.getBoundaryEdgeNodes("Top").size(), nx - 1);
+  EXPECT_EQ(mesh.getBoundaryEdgeNodes("Left").size(), ny - 1);
+  EXPECT_EQ(mesh.getBoundaryEdgeNodes("Right").size(), ny - 1);
+
+  std::vector<std::pair<std::size_t, std::size_t>> bottom = mesh.getBoundaryEdgeNodes("Bottom");
+  for (std::size_t i = 0; i < bottom.size(); ++i) {
+    EXPECT_EQ(bottom[i].first + 1, bottom[i].second);
+    EXPECT_TRUE(mesh.isNodeBoundary(bottom[i].first));
+    EXPECT_TRUE(mesh.isNodeBoundary(bottom[i].second));
+  }
+}
+
+// =============================================================================
+// Test 11 - Check that getInnerNodes() and getBoundaryNodes() return,
 //           respectively, only inner and boundary nodes
 // =============================================================================
 TEST_F(StructuredMesh2DTest, InnerBoundaryNodesSeparation) {
@@ -171,7 +188,7 @@ TEST_F(StructuredMesh2DTest, InnerBoundaryNodesSeparation) {
 }
 
 // =============================================================================
-// Test 11 - Check element count and node indices are valid
+// Test 12 - Check element count and node indices are valid
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementCountingAndNodeIndices) {
   const std::vector<std::size_t>& element_connectivity =
@@ -198,7 +215,7 @@ TEST_F(StructuredMesh2DTest, ElementCountingAndNodeIndices) {
 }
 
 // =============================================================================
-// Test 12 - Check that all element node indices are distinct
+// Test 13 - Check that all element node indices are distinct
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementNodesAreDistinct) {
   const std::vector<std::size_t>& element_connectivity =
@@ -221,7 +238,7 @@ TEST_F(StructuredMesh2DTest, ElementNodesAreDistinct) {
 }
 
 // =============================================================================
-// Test 13 - Check element areas are positive and sum to domain area
+// Test 14 - Check element areas are positive and sum to domain area
 // =============================================================================
 TEST_F(StructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea) {
   double totalArea = 0.0;
@@ -239,7 +256,7 @@ TEST_F(StructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea) {
 }
 
 // =============================================================================
-// Test 14 - Check that every node belongs to at least one element
+// Test 15 - Check that every node belongs to at least one element
 // =============================================================================
 TEST_F(StructuredMesh2DTest, AllNodesCoveredByElements) {
   const std::vector<std::size_t>& element_connectivity =
@@ -264,7 +281,7 @@ TEST_F(StructuredMesh2DTest, AllNodesCoveredByElements) {
 }
 
 // =============================================================================
-// Test 15 - Check that boundary groups are consistent with boundary nodes
+// Test 16 - Check that boundary groups are consistent with boundary nodes
 // =============================================================================
 TEST_F(StructuredMesh2DTest, BoundaryGroupsConsistentWithBoundaryNodes) {
   for (const auto& [tag, nodeIDs] : mesh.getBoundaryGroups()) {
@@ -298,7 +315,7 @@ TEST(UnstructuredMesh2D, InvalidMeshFileThrows) {
 }
 
 // =============================================================================
-// Test 16 - Check element areas are positive and sum to domain area
+// Test 2 - Check element areas are positive and sum to domain area
 // =============================================================================
 TEST(UnstructuredMesh2DTest, ElementAreasPositiveAndSumToDomainArea) {
   UnstructuredMesh2D mesh("test_shape.msh");

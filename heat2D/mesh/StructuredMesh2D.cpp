@@ -37,6 +37,8 @@ StructuredMesh2D::StructuredMesh2D(double left, double right, double bottom,
 
   meshDomain();
 
+  computeBoundaryEdges();
+  
   std::cout << "  -> StructuredMesh2D created with " << nodes_.size()
             << " nodes (" << inner_nodes_.size() << " inner, "
             << boundary_nodes_.size() << " boundary).\n";
