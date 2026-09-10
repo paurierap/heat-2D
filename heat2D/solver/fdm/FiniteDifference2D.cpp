@@ -18,42 +18,11 @@ FiniteDifference2D::FiniteDifference2D(
     std::function<double(double, double, double)> source)
     : SpatialDiscretization2D(alpha, mesh, boundary_conditions, source),
       mesh_(mesh) {
-  // Precompute Dirichlet nodes and check if there are any Neumann BCs (helpful
-  // to determine if the Laplacian matrix is SPD)
-  for (const auto& [tag, BC] : boundary_conditions_) {
-    if (BC->getType() == bc::BoundaryConditionType::Dirichlet) {
-      for (std::size_t nodeID : mesh_.getBoundary(tag))
-        is_dirichlet_[nodeID] = true;
-    } else
-      isMatrixSPD = false;
-  }
-
-  buildMappings();
 
   // Resize arrays for reduced space
   std::size_t local_space_size = local_to_global_.size();
-  tripletList.reserve(5 * local_space_size);
-  matrixK_.resize(local_space_size, local_space_size);
-  matrixM_.resize(local_space_size, local_space_size);
+  tripletListK_.reserve(5 * local_space_size);
   matrixM_.setIdentity();
-  b_.resize(local_space_size);
-}
-
-// Create a mapping to reduce system size by omitting Dirichlet boundary
-// conditions
-void FiniteDifference2D::buildMappings() {
-  const std::vector<mesh::Node2D>& nodes = mesh_.getNodes();
-
-  std::size_t free_index = 0;
-  for (const auto& node : nodes) {
-    std::size_t globalID = node.nodeID_;
-
-    if (is_dirichlet_[globalID]) continue;
-
-    global_to_local_[globalID] = free_index;
-    local_to_global_.push_back(globalID);
-    free_index++;
-  }
 }
 
 void FiniteDifference2D::discretize() {
@@ -62,7 +31,7 @@ void FiniteDifference2D::discretize() {
 
   applyLaplacian();
   applyBoundaryConditions();
-  matrixK_.setFromTriplets(tripletList.begin(), tripletList.end());
+  matrixK_.setFromTriplets(tripletListK_.begin(), tripletListK_.end());
 
   std::cout << "  -> Spatial discretization was successful.\n";
 }
@@ -75,7 +44,7 @@ void FiniteDifference2D::addDiagonalTerm(std::size_t nodeID) {
   double dx = mesh_.getDx();
   double dy = mesh_.getDy();
 
-  tripletList.emplace_back(
+  tripletListK_.emplace_back(
       localID, localID,
       -(alpha_(x + 0.5 * dx, y) + alpha_(x - 0.5 * dx, y)) / (dx * dx) -
           (alpha_(x, y + 0.5 * dy) + alpha_(x, y - 0.5 * dy)) / (dy * dy));
@@ -106,7 +75,7 @@ void FiniteDifference2D::addOffDiagonalTerm(
   // Horizontal nodes of the stencil
   if (dirx) {
     double dx = mesh_.getDx();
-    tripletList.emplace_back(
+    tripletListK_.emplace_back(
         localID, neighbor_local,
         alpha_(x + 0.5 * dirx * dx, y) / (dx * dx) * multiplier);
     return;
@@ -114,7 +83,7 @@ void FiniteDifference2D::addOffDiagonalTerm(
 
   // Vertical nodes of the stencil
   double dy = mesh_.getDy();
-  tripletList.emplace_back(
+  tripletListK_.emplace_back(
       localID, neighbor_local,
       alpha_(x, y + 0.5 * diry * dy) / (dy * dy) * multiplier);
 }
@@ -149,6 +118,7 @@ void FiniteDifference2D::applyBoundaryConditions() {
 
   for (const auto& boundary_node : boundary_nodes) {
     if (is_dirichlet_[boundary_node.nodeID_]) continue;
+    isMatrixSPD = false;  // Neumann or Robin BCs present
     applyFluxBoundaryCondition(boundary_node);
   }
 
@@ -189,7 +159,7 @@ void FiniteDifference2D::applyFluxBoundaryCondition(
           dirx ? alpha_(x + 0.5 * dirx * h, y) : alpha_(x, y + 0.5 * diry * h);
 
       // Correction for the boundary node
-      tripletList.emplace_back(
+      tripletListK_.emplace_back(
           localID, localID,
           -2.0 * alpha_mid / h * BC.u_coeff(x, y) / BC.du_coeff(x, y));
     }
@@ -268,95 +238,5 @@ void FiniteDifference2D::updateFluxBoundaryCondition(
     const bc::BoundaryCondition& BC = getBoundaryCondition(tag);
     b_[localID] += 2.0 * alpha_mid / h * BC.f(x, y, t) / BC.du_coeff(x, y, t);
   }
-}
-
-// Solve Poisson's equation, ie du/dt = 0.
-Eigen::VectorXd FiniteDifference2D::solveSteadyState() {
-  std::cout << "\nSolving steady-state problem...\n";
-  Eigen::VectorXd reduced_sol_ = solve_reduced();
-  std::cout << "  -> Steady-state solution was successful!\n";
-
-  return fillDirichletNodes(reduced_sol_, 0.0);
-}
-
-Eigen::VectorXd FiniteDifference2D::fillDirichletNodes(
-    const Eigen::Ref<const Eigen::VectorXd>& reduced_solution, double t) const {
-  Eigen::VectorXd solution(mesh_.getNodes().size());
-
-  // Fill solution with Dirichlet nodes
-  const std::vector<mesh::Node2D>& nodes = mesh_.getNodes();
-  for (const auto& node : nodes) {
-    std::size_t globalID = node.nodeID_;
-
-    if (!is_dirichlet_[globalID])
-      solution[globalID] = reduced_solution[global_to_local_[globalID]];
-  }
-
-  for (const auto& [tag, BC] : boundary_conditions_) {
-    if (BC->getType() == bc::BoundaryConditionType::Dirichlet) {
-      for (std::size_t globalID : mesh_.getBoundary(tag)) {
-        mesh::BoundaryNode2D boundary_node = mesh_.getBoundaryNode(globalID);
-        double x = boundary_node.x_;
-        double y = boundary_node.y_;
-
-        solution[globalID] = BC->f(x, y, t);
-      }
-    }
-  }
-
-  return solution;
-}
-
-Eigen::VectorXd FiniteDifference2D::reduce(
-    std::function<double(double, double)> u) {
-  std::size_t reduced_spacesize = local_to_global_.size();
-  Eigen::VectorXd reduced_u(reduced_spacesize);
-
-  for (std::size_t i = 0; i < reduced_spacesize; ++i) {
-    std::size_t globalID = local_to_global_[i];
-    const mesh::Node2D& node = mesh_.getNode(globalID);
-
-    reduced_u[i] = u(node.x_, node.y_);
-  }
-
-  return reduced_u;
-}
-
-Eigen::VectorXd FiniteDifference2D::solve_reduced() {
-  Eigen::VectorXd reduced_sol_(local_to_global_.size());
-
-  // Populate b_
-  updateRHS();
-
-  // Direct LDL^T factorization (only if A is SPD)
-  if (isMatrixSPD) {
-    Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> ldlt;
-    ldlt.compute(-matrixK_);
-    if (ldlt.info() != Eigen::Success)
-      throw std::runtime_error("LDLT factorization failed\n");
-
-    reduced_sol_ = ldlt.solve(b_);
-
-    Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
-    const double b_norm = b_.norm();
-    if (b_norm > 0.0 && residual.norm() / b_norm > 1e-10)
-      throw std::runtime_error("LDLT solve residual too large");
-  } else  // Fall back to LU
-  {
-    Eigen::SparseLU<Eigen::SparseMatrix<double>> lu;
-
-    lu.compute(-matrixK_);
-    if (lu.info() != Eigen::Success)
-      throw std::runtime_error("LU factorization failed\n");
-
-    reduced_sol_ = lu.solve(b_);
-
-    Eigen::VectorXd residual = (-matrixK_) * reduced_sol_ - b_;
-    const double b_norm = b_.norm();
-    if (b_norm > 0.0 && residual.norm() / b_norm > 1e-10)
-      throw std::runtime_error("LU solve residual too large");
-  }
-
-  return reduced_sol_;
 }
 };  // namespace heat2d::solver

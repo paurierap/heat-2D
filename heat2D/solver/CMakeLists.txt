@@ -3,7 +3,9 @@
 #=============================================================================
 
 add_library(solver
-  FiniteDifference2D.cpp
+  SpatialDiscretization2D.cpp
+  fdm/FiniteDifference2D.cpp
+  fem/FiniteElement2D.cpp
 )
 
 target_include_directories(solver
@@ -15,6 +17,7 @@ target_link_libraries(solver
   PUBLIC
   mesh
   bc
+  quadrature
   Eigen3::Eigen
   $<$<BOOL:${HEAT2D_ENABLE_OPENMP}>:OpenMP::OpenMP_CXX>
 )

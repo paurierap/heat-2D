@@ -5,8 +5,9 @@
 #include <functional>
 
 #include "BoundaryConditions.hpp"
-#include "FiniteDifference2D.hpp"
-#include "StructuredMesh2D.hpp"
+#include "Solver.hpp"
+#include "fem/IsoparametricMapping.hpp"
+#include "Mesh.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -633,4 +634,373 @@ TEST(FiniteDifference2D, PoissonAllBCTypesCornerCombinationsConvergence) {
   double convergence_rate =
       std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
   EXPECT_NEAR(convergence_rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// IsoparametricMapping tests
+// =============================================================================
+
+// =============================================================================
+// Test 1 - toPhysical maps the reference vertices to the element nodes
+// =============================================================================
+TEST(IsoparametricMapping, MapsReferenceVertices) {
+  mesh::Node2D a{0, 0.0, 0.0};
+  mesh::Node2D b{1, 1.0, 0.0};
+  mesh::Node2D c{2, 0.0, 1.0};
+  heat2d::solver::IsoparametricMapping mapping({a, b, c});
+
+  EXPECT_NEAR(mapping.toPhysical(0.0, 0.0).x_, 0.0, 1e-12);
+  EXPECT_NEAR(mapping.toPhysical(0.0, 0.0).y_, 0.0, 1e-12);
+  EXPECT_NEAR(mapping.toPhysical(1.0, 0.0).x_, 1.0, 1e-12);
+  EXPECT_NEAR(mapping.toPhysical(1.0, 0.0).y_, 0.0, 1e-12);
+  EXPECT_NEAR(mapping.toPhysical(0.0, 1.0).x_, 0.0, 1e-12);
+  EXPECT_NEAR(mapping.toPhysical(0.0, 1.0).y_, 1.0, 1e-12);
+}
+
+// =============================================================================
+// Test 2 - The Jacobian determinant equals twice the physical element area
+// =============================================================================
+TEST(IsoparametricMapping, DetJacobianEqualsTwiceArea) {
+  mesh::Node2D a{0, 0.0, 0.0};
+  mesh::Node2D b{1, 2.0, 1.0};
+  mesh::Node2D c{2, -1.0, 3.0};
+  heat2d::solver::IsoparametricMapping mapping({a, b, c});
+
+  double area = 3.5;
+  EXPECT_NEAR(mapping.detJacobian(0.3, 0.2), 2.0 * area, 1e-12);
+}
+
+// =============================================================================
+// Test 3 - An affine triangle has constant physical gradients
+// =============================================================================
+TEST(IsoparametricMapping, AffineElementConstantGradients) {
+  mesh::Node2D a{0, 0.0, 0.0};
+  mesh::Node2D b{1, 2.0, 0.0};
+  mesh::Node2D c{2, 0.0, 3.0};
+  heat2d::solver::IsoparametricMapping mapping({a, b, c});
+
+  Eigen::Matrix<double, 3, 2> g1 = mapping.physicalGradients(0.1, 0.4);
+  Eigen::Matrix<double, 3, 2> g2 = mapping.physicalGradients(0.9, 0.1);
+
+  Eigen::Matrix<double, 3, 2> expected;
+  expected << -0.5, -1.0 / 3.0,  //
+      0.5, 0.0,                  //
+      0.0, 1.0 / 3.0;
+  EXPECT_TRUE(g1.isApprox(expected, 1e-12));
+  EXPECT_TRUE((g1 - g2).norm() < 1e-12);
+}
+
+// =============================================================================
+// FiniteElement2D tests
+// =============================================================================
+
+// =============================================================================
+// Helper: L-infinity error of the FE solution against an exact function
+// =============================================================================
+double fe_solve_and_get_error(heat2d::solver::SpatialDiscretization2D& sd,
+                              const heat2d::mesh::Mesh2D& mesh,
+                              std::function<double(double, double)> solution) {
+  sd.discretize();
+  Eigen::VectorXd sol = sd.solveSteadyState();
+  Eigen::VectorXd exact(sol.size());
+
+  std::size_t j = 0;
+  for (const auto& node : mesh.getNodes())
+    exact[j++] = solution(node.x_, node.y_);
+
+  return (exact - sol).lpNorm<Eigen::Infinity>();
+}
+
+// =============================================================================
+// Test - Patch test: a linear field is reproduced exactly with pure Dirichlet
+// =============================================================================
+TEST(FiniteElement2D, PatchTestLinearField) {
+  constexpr std::size_t nx = 5, ny = 5;
+  const heat2d::mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
+
+  auto linearBC = [](double x, double y, double) {
+    return 1.0 + 2.0 * x - 0.5 * y;
+  };
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(linearBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(linearBC);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(linearBC);
+  bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(linearBC);
+
+  auto source = [](double, double, double) { return 0.0; };
+  auto alpha = [](double, double) { return 1.0; };
+
+  auto exact = [](double x, double y) { return 1.0 + 2.0 * x - 0.5 * y; };
+
+  heat2d::solver::FiniteElement2D fe(alpha, mesh, bc, source, 2);
+  EXPECT_LT(fe_solve_and_get_error(fe, mesh, exact), 1e-9);
+}
+
+// =============================================================================
+// Test - Patch test: a linear field is reproduced exactly with mixed
+//        Dirichlet/Neumann BCs (u = x, Dirichlet on the left, flux on the
+//        remaining sides).
+// =============================================================================
+TEST(FiniteElement2D, MixedDirichletNeumannPatchTest) {
+  constexpr std::size_t nx = 9, ny = 9;
+  const heat2d::mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
+
+  auto leftBC = [](double, double, double) { return 0.0; };
+  auto zeroFlux = [](double, double, double) { return 0.0; };
+  auto unitFlux = [](double, double, double) { return 1.0; };
+
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(leftBC);
+  bc["Bottom"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+  bc["Top"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+  bc["Right"] = std::make_shared<bc::NeumannBoundaryCondition>(unitFlux);
+
+  auto source = [](double, double, double) { return 0.0; };
+  auto alpha = [](double, double) { return 1.0; };
+
+  auto exact = [](double x, double y) { return x; };
+
+  heat2d::solver::FiniteElement2D fe(alpha, mesh, bc, source, 3);
+  EXPECT_LT(fe_solve_and_get_error(fe, mesh, exact), 1e-9);
+}
+
+// =============================================================================
+// Test - Dirichlet-only Poisson problem converges with order 2
+// =============================================================================
+TEST(FiniteElement2D, PoissonConvergence) {
+  auto exact = [](double x, double y) {
+    return std::sin(M_PI * x) * std::sin(M_PI * y);
+  };
+  auto source = [](double x, double y, double) {
+    return 2.0 * M_PI * M_PI * std::sin(M_PI * x) * std::sin(M_PI * y);
+  };
+  auto zeroBC = [](double, double, double) { return 0.0; };
+
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+
+  auto alpha = [](double, double) { return 1.0; };
+
+  const heat2d::mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, 9, 9);
+  const heat2d::mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, 17, 17);
+
+  heat2d::solver::FiniteElement2D fe_coarse(alpha, mesh_coarse, bc, source, 3);
+  heat2d::solver::FiniteElement2D fe_fine(alpha, mesh_fine, bc, source, 3);
+
+  double err_coarse = fe_solve_and_get_error(fe_coarse, mesh_coarse, exact);
+  double err_fine = fe_solve_and_get_error(fe_fine, mesh_fine, exact);
+  double h_coarse = mesh_coarse.getDx();
+  double h_fine = mesh_fine.getDx();
+
+  double convergence_rate =
+      std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
+  EXPECT_NEAR(convergence_rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// Test - Poisson equation with a source and variable diffusivity α = 1 + x
+//        converges with order 2.
+// =============================================================================
+TEST(FiniteElement2D, PoissonVariableAlphaConvergence) {
+  constexpr std::size_t n_coarse = 17, n_fine = 33;
+
+  const heat2d::mesh::StructuredMesh2D mesh_coarse(0, 1, 0, 1, n_coarse,
+                                                   n_coarse);
+  const heat2d::mesh::StructuredMesh2D mesh_fine(0, 1, 0, 1, n_fine, n_fine);
+
+  // Define BCs
+  auto zero = [](double, double, double) { return 0.0; };
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zero);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zero);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(zero);
+  bc["Top"] = std::make_shared<bc::DirichletBoundaryCondition>(zero);
+
+  // Source term
+  auto source = [](double x, double y, double) {
+    return -(M_PI * std::cos(M_PI * x) * std::sin(M_PI * y) -
+             2.0 * M_PI * M_PI * (1.0 + x) * std::sin(M_PI * x) *
+                 std::sin(M_PI * y));
+  };
+
+  // Exact solution
+  auto solution = [](double x, double y) {
+    return std::sin(M_PI * x) * std::sin(M_PI * y);
+  };
+
+  auto alpha = [](double x, double) { return 1.0 + x; };
+  heat2d::solver::FiniteElement2D fe_coarse(alpha, mesh_coarse, bc, source, 3);
+  heat2d::solver::FiniteElement2D fe_fine(alpha, mesh_fine, bc, source, 3);
+
+  double err_coarse = fe_solve_and_get_error(fe_coarse, mesh_coarse, solution);
+  double err_fine = fe_solve_and_get_error(fe_fine, mesh_fine, solution);
+  double h_coarse = mesh_coarse.getDx();
+  double h_fine = mesh_fine.getDx();
+
+  double convergence_rate =
+      std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
+  EXPECT_NEAR(convergence_rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// Test - Laplace equation with a true Robin BC on the top boundary converges
+//        with order 2.
+//
+// u(x,y) = sin(πx/Lx) * cosh(πy/Lx) is harmonic. Dirichlet on
+// left/right/bottom: u_left = u_right = 0, u_bottom = sin(πx/Lx). On top, with
+// u_coeff = 2 and du_coeff = 3, we have f(x) = 2 * u_top + 3 * du/dy|_top
+//          = sin(πx/Lx) * [2 cosh(πLy/Lx) + 3(π/Lx) sinh(πLy/Lx)]
+// =============================================================================
+TEST(FiniteElement2D, LaplaceRobinBCConvergence) {
+  constexpr std::size_t n_coarse = 17, n_fine = 33;
+  constexpr double Lx = 2.0, Ly = 3.0;
+
+  const heat2d::mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, n_coarse,
+                                                   n_coarse);
+  const heat2d::mesh::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, n_fine, n_fine);
+
+  auto zeroBC = [](double, double, double) { return 0.0; };
+  auto bottomBC = [&](double x, double, double) {
+    return std::sin(M_PI * x / Lx);
+  };
+
+  auto uCoeff = [](double, double, double) { return 2.0; };
+  auto duCoeff = [](double, double, double) { return 3.0; };
+  auto topRobin = [&](double x, double, double) {
+    return std::sin(M_PI * x / Lx) *
+           (2.0 * std::cosh(M_PI * Ly / Lx) +
+            3.0 * (M_PI / Lx) * std::sinh(M_PI * Ly / Lx));
+  };
+
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Bottom"] = std::make_shared<bc::DirichletBoundaryCondition>(bottomBC);
+  bc["Top"] =
+      std::make_shared<bc::RobinBoundaryCondition>(uCoeff, duCoeff, topRobin);
+
+  auto source = [](double, double, double) { return 0.0; };
+  auto solution = [&](double x, double y) {
+    return std::sin(M_PI * x / Lx) * std::cosh(M_PI * y / Lx);
+  };
+  auto alpha = [](double, double) { return 1.0; };
+
+  heat2d::solver::FiniteElement2D fe_coarse(alpha, mesh_coarse, bc, source, 3);
+  heat2d::solver::FiniteElement2D fe_fine(alpha, mesh_fine, bc, source, 3);
+
+  double err_coarse = fe_solve_and_get_error(fe_coarse, mesh_coarse, solution);
+  double err_fine = fe_solve_and_get_error(fe_fine, mesh_fine, solution);
+  double h_coarse = mesh_coarse.getDx();
+  double h_fine = mesh_fine.getDx();
+
+  double convergence_rate =
+      std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
+  EXPECT_NEAR(convergence_rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// Test - Poisson equation with all three BC types present simultaneously
+//        (Dirichlet, Neumann, Robin) converges with order 2.
+//
+// Manufactured solution: u(x,y) = log(sin²(xy) + 1) with α = 1.
+//   Left   (x=0):   Dirichlet, u = 0
+//   Bottom (y=0):   Neumann,   du/dy = 0
+//   Right  (x=Lx):  Dirichlet, u = log(sin²(Lx·y) + 1)
+//   Top    (y=Ly):  Robin,     2*u + 1*(du/dy) = f_top(x)
+// =============================================================================
+// =============================================================================
+// Test - Poisson equation with all three BC types present simultaneously
+//        (Dirichlet, Neumann, Robin) converges with order 2.
+//
+// Manufactured solution: u(x,y) = sin(pi x/Lx) sin(pi y/Ly) with alpha = 1.
+//   Left   (x=0):   Dirichlet, u = 0
+//   Right  (x=Lx):  Dirichlet, u = 0
+//   Bottom (y=0):   Neumann,   q = alpha du/dn = -(pi/Ly) sin(pi x/Lx)
+//   Top    (y=Ly):  Robin,     2*u + 1*(du/dy) = -(pi/Ly) sin(pi x/Lx)
+// =============================================================================
+TEST(FiniteElement2D, PoissonAllBCTypesCornerCombinationsConvergence) {
+  constexpr double Lx = 2.0, Ly = 1.0;
+  constexpr std::size_t nx_coarse = 33, ny_coarse = 17;
+  constexpr std::size_t nx_fine = 65, ny_fine = 33;
+  const heat2d::mesh::StructuredMesh2D mesh_coarse(0, Lx, 0, Ly, nx_coarse,
+                                                   ny_coarse);
+  const heat2d::mesh::StructuredMesh2D mesh_fine(0, Lx, 0, Ly, nx_fine,
+                                                 ny_fine);
+
+  auto exact = [](double x, double y) {
+    return std::sin(M_PI * x / Lx) * std::sin(M_PI * y / Ly);
+  };
+  auto source = [](double x, double y, double) {
+    double mu = M_PI * M_PI / (Lx * Lx) + M_PI * M_PI / (Ly * Ly);
+    return mu * std::sin(M_PI * x / Lx) * std::sin(M_PI * y / Ly);
+  };
+  auto alpha = [](double, double) { return 1.0; };
+  auto zeroBC = [](double, double, double) { return 0.0; };
+
+  // Bottom Neumann: q = alpha du/dn = -(pi/Ly) sin(pi x/Lx).
+  auto bottomFlux = [](double x, double, double) {
+    return -M_PI / Ly * std::sin(M_PI * x / Lx);
+  };
+  // Top Robin: 2u + du/dy = f, du/dy at y = Ly = -(pi/Ly) sin(pi x/Lx).
+  auto uCoeffTop = [](double, double, double) { return 2.0; };
+  auto duCoeffTop = [](double, double, double) { return 1.0; };
+  auto fTop = [](double x, double, double) {
+    return -M_PI / Ly * std::sin(M_PI * x / Lx);
+  };
+
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Right"] = std::make_shared<bc::DirichletBoundaryCondition>(zeroBC);
+  bc["Bottom"] = std::make_shared<bc::NeumannBoundaryCondition>(bottomFlux);
+  bc["Top"] =
+      std::make_shared<bc::RobinBoundaryCondition>(uCoeffTop, duCoeffTop, fTop);
+
+  heat2d::solver::FiniteElement2D fe_coarse(alpha, mesh_coarse, bc, source, 3);
+  heat2d::solver::FiniteElement2D fe_fine(alpha, mesh_fine, bc, source, 3);
+
+  double err_coarse = fe_solve_and_get_error(fe_coarse, mesh_coarse, exact);
+  double err_fine = fe_solve_and_get_error(fe_fine, mesh_fine, exact);
+  double h_coarse = mesh_coarse.getDx();
+  double h_fine = mesh_fine.getDx();
+
+  double convergence_rate =
+      std::log(err_coarse / err_fine) / std::log(h_coarse / h_fine);
+  EXPECT_NEAR(convergence_rate, 2.0, 0.1);
+}
+
+// =============================================================================
+// Test - The mass matrix must NOT contain the diffusivity: assembling with two
+//        different α fields yields the same mass matrix.
+// =============================================================================
+TEST(FiniteElement2D, MassMatrixHasNoDiffusivity) {
+  constexpr std::size_t nx = 9, ny = 9;
+  const heat2d::mesh::StructuredMesh2D mesh(0, 1, 0, 1, nx, ny);
+
+  auto zeroFlux = [](double, double, double) { return 0.0; };
+  heat2d::solver::BoundaryConditions bc;
+  bc["Left"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+  bc["Right"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+  bc["Bottom"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+  bc["Top"] = std::make_shared<bc::NeumannBoundaryCondition>(zeroFlux);
+
+  auto source = [](double, double, double) { return 0.0; };
+  auto alpha_one = [](double, double) { return 1.0; };
+  auto alpha_x = [](double x, double) { return 1.0 + x; };
+
+  heat2d::solver::FiniteElement2D fe_one(alpha_one, mesh, bc, source, 2);
+  fe_one.discretize();
+  heat2d::solver::FiniteElement2D fe_x(alpha_x, mesh, bc, source, 2);
+  fe_x.discretize();
+
+  const auto& M_one = fe_one.getMatrixM();
+  const auto& M_x = fe_x.getMatrixM();
+  EXPECT_EQ(M_one.rows(), M_x.rows());
+  EXPECT_EQ(M_one.cols(), M_x.cols());
+  EXPECT_LT((M_one - M_x).norm(), 1e-12);
+
+  Eigen::VectorXd rowSums = M_one * Eigen::VectorXd::Ones(M_one.cols());
+  EXPECT_GT(rowSums.minCoeff(), 0.0);
 }

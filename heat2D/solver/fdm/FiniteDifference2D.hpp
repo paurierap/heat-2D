@@ -6,7 +6,7 @@
 #include <functional>
 #include <string>
 
-#include "BoundaryCondition.hpp"
+#include "BoundaryConditions.hpp"
 #include "SpatialDiscretization2D.hpp"
 #include "StructuredMesh2D.hpp"
 
@@ -20,38 +20,29 @@ class FiniteDifference2D : public SpatialDiscretization2D {
   // Structured mesh required for finite differences
   const mesh::StructuredMesh2D& mesh_;
 
-  // Flag to indicate if the Laplacian matrix is symmetric positive definite
-  // (SPD). If there are Neumann or Robin boundary conditions, the matrix may
+  // Flag to indicate if the Laplacian matrix K is symmetric positive definite
+  // (SPD). If there are Neumann or Robin boundary conditions, the matrix K  may
   // not be SPD.
   bool isMatrixSPD = true;
 
+  void addDiagonalTerm(std::size_t);
+  void addOffDiagonalTerm(std::size_t, const std::pair<int, int>&,
+                          double = 1.0);
+  void applyLaplacian();
+  void applyBoundaryConditions();
+  void applyFluxBoundaryCondition(const mesh::BoundaryNode2D&);
+
+  void updateDirichletBoundaryCondition(const mesh::BoundaryNode2D&, double t);
+  void updateFluxBoundaryCondition(const mesh::BoundaryNode2D&, double t);
  public:
   FiniteDifference2D(std::function<double(double, double)>,
                      const mesh::StructuredMesh2D&, BoundaryConditions,
                      std::function<double(double, double, double)>);
 
-  void buildMappings() override;
-
   void discretize() override;
-
-  void addDiagonalTerm(std::size_t);
-  void addOffDiagonalTerm(std::size_t, const std::pair<int, int>&,
-                          double = 1.0);
-  void applyLaplacian() override;
-
-  void applyBoundaryConditions() override;
-  void applyFluxBoundaryCondition(const mesh::BoundaryNode2D&);
-
   void updateRHS(double t = 0.0) override;
-  void updateDirichletBoundaryCondition(const mesh::BoundaryNode2D&, double t);
-  void updateFluxBoundaryCondition(const mesh::BoundaryNode2D&, double t);
-
-  Eigen::VectorXd solveSteadyState() override;
-  Eigen::VectorXd reduce(std::function<double(double, double)>) override;
-  Eigen::VectorXd fillDirichletNodes(const Eigen::Ref<const Eigen::VectorXd>&,
-                                     double) const override;
-  Eigen::VectorXd solve_reduced();
-  virtual bool isSPD() const override { return isMatrixSPD; };
+  bool isMSPD() const override { return true; };
+  bool isKSPD() const override { return isMatrixSPD; };
 };
 
 }  // namespace heat2d::solver
