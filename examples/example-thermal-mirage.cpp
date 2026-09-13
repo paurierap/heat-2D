@@ -7,7 +7,7 @@
 #include "BoundaryConditions.hpp"
 #include "CrankNicolson.hpp"
 #include "DirichletBoundaryCondition.hpp"
-#include "FiniteDifference2D.hpp"
+#include "fdm/FiniteDifference2D.hpp"
 #include "HeatPDE2D.hpp"
 #include "NeumannBoundaryCondition.hpp"
 #include "SolutionWriter.hpp"

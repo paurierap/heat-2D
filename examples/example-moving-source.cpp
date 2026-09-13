@@ -4,13 +4,12 @@
 #include <iostream>
 #include <string>
 
+#include "Mesh.hpp"
 #include "BoundaryConditions.hpp"
-#include "CrankNicolson.hpp"
-#include "FiniteDifference2D.hpp"
+#include "Ode.hpp"
+#include "Solver.hpp"
 #include "HeatPDE2D.hpp"
-#include "NeumannBoundaryCondition.hpp"
 #include "SolutionWriter.hpp"
-#include "StructuredMesh2D.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -36,7 +35,7 @@ void run(HeatPDE2D& solver, const mesh::StructuredMesh2D& mesh,
 // All Neumann (perfectly insulated) walls. A Gaussian heat source orbits
 // the centre of the domain, leaving a glowing trail as energy accumulates.
 // =============================================================================
-void example_moving_source(const std::string& output_filename) {
+void example_moving_source(const std::string& output_filename, SolutionWriter::FORMAT format) {
   constexpr std::size_t n = 101;
   constexpr double dt = 0.1;
   constexpr double t_end = 4.0 * M_PI;  // Two full orbits
@@ -68,10 +67,11 @@ void example_moving_source(const std::string& output_filename) {
   auto u0 = [](double, double) { return 0.0; };
 
   // Set up the solver and writer
-  solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+  //solver::FiniteDifference2D fd(alpha, mesh, bc, source);
+  solver::FiniteElement2D fd(alpha, mesh, bc, source);
   ode::CrankNicolson ti(dt);
   HeatPDE2D solver(fd, ti, 0.0, u0);
-  SolutionWriter writer(output_filename);
+  SolutionWriter writer(output_filename, format);
 
   // Run and write output every 2 steps (every 0.2 time units)
   run(solver, mesh, writer, t_end, 2);
@@ -82,7 +82,8 @@ int main() {
   std::cout << "Running: Moving heat source in insulated box...\n";
 
   std::string output_filename = "examples/moving-source.csv";
-  example_moving_source(output_filename);
+  //example_moving_source(output_filename);
+  example_moving_source("examples/moving-source.pvd", SolutionWriter::FORMAT::VTU);
 
   std::cout << "  -> " << output_filename << " generated.\n";
 

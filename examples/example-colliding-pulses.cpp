@@ -6,7 +6,7 @@
 
 #include "CrankNicolson.hpp"
 #include "DirichletBoundaryCondition.hpp"
-#include "FiniteDifference2D.hpp"
+#include "fdm/FiniteDifference2D.hpp"
 #include "HeatPDE2D.hpp"
 #include "SolutionWriter.hpp"
 #include "StructuredMesh2D.hpp"
