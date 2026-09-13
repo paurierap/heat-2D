@@ -7,13 +7,9 @@
 #include <functional>
 #include <vector>
 
-#include "CrankNicolson.hpp"
-#include "DirichletBoundaryCondition.hpp"
-#include "ExplicitEuler.hpp"
-#include "FiniteDifference2D.hpp"
-#include "ImplicitEuler.hpp"
-#include "NeumannBoundaryCondition.hpp"
-#include "StructuredMesh2D.hpp"
+#include "BoundaryConditions.hpp"
+#include "Ode.hpp"
+#include "Solver.hpp"
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846

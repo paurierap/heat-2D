@@ -44,8 +44,6 @@ class CrankNicolson : public TimeIntegrator {
     const SparseMatrixRM& M = sd.getMatrixM();
     const SparseMatrixRM& K = sd.getMatrixK();
 
-    isMatrixSPD_ = sd.isSPD();
-
     // Heuristic for iterative solver choice. This is a very rough estimate and
     // should be tuned based on benchmarking results.
     useIterativeSolver_ = (timestep_ * M.rows() < 200.);
@@ -55,6 +53,8 @@ class CrankNicolson : public TimeIntegrator {
 
     M_lhs_ = M - 0.5 * timestep_ * K;
     M_rhs_ = M + 0.5 * timestep_ * K;
+
+    isMatrixSPD_ = sd.isMSPD() && sd.isKSPD();
 
     // Try an SPD factorization if the matrix is SPD
     if (isMatrixSPD_) {

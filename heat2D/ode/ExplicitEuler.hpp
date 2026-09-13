@@ -12,13 +12,28 @@ namespace heat2d::ode {
 class ExplicitEuler : public TimeIntegrator {
  private:
   // TO DO: Consider lumping the mass matrix from FEM.
-  mutable Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> Msolver_;
+  mutable Eigen::SimplicialLDLT<Eigen::SparseMatrix<double>> SPDsolver_;
+  mutable Eigen::SparseLU<Eigen::SparseMatrix<double>> LUsolver_;
+
+  bool isMatrixSPD_ = false;
 
  public:
   ExplicitEuler(double timestep) : TimeIntegrator(timestep) {};
 
   void setUp(const solver::SpatialDiscretization2D& sd) override {
-    Msolver_.compute(sd.getMatrixM());
+    isMatrixSPD_ = sd.isMSPD();
+
+    if (isMatrixSPD_) {
+      SPDsolver_.compute(sd.getMatrixM());
+      if (SPDsolver_.info() != Eigen::Success)
+        throw std::runtime_error(
+            "LDLT factorization for Explicit Euler mass matrix failed\n");
+    } else {
+      LUsolver_.compute(sd.getMatrixM());
+      if (LUsolver_.info() != Eigen::Success)
+        throw std::runtime_error(
+            "LU factorization for Explicit Euler mass matrix failed\n");
+    }
   };
 
   void step(solver::SpatialDiscretization2D& sd, double t,
@@ -28,8 +43,13 @@ class ExplicitEuler : public TimeIntegrator {
     const Eigen::SparseMatrix<double>& K = sd.getMatrixK();
     const Eigen::VectorXd& b = sd.getVector();
 
-    // Prevent aliasing from expression templating in Eigen using eval()
-    u += (timestep_ * Msolver_.solve(K * u + b)).eval();
+    Eigen::VectorXd rhs = K * u + b;
+
+    if (isMatrixSPD_) {
+      u += (timestep_ * SPDsolver_.solve(rhs)).eval();
+    } else {
+      u += (timestep_ * LUsolver_.solve(rhs)).eval();
+    }
   };
 
   // Virtual factory for timestep remainder operations. Note that the clone does
