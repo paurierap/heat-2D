@@ -1,5 +1,6 @@
-!/{scripts, animations}/
-/*/*
+/*/
+!/animations/
+!/scripts/
 *.cfg
 *.csv
 *.py
