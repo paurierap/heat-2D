@@ -2,7 +2,7 @@
 # Examples - one executable per .cpp file
 #=============================================================================
 
-file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS "*.cpp")
+file(GLOB EXAMPLE_SOURCES CONFIGURE_DEPENDS "scripts/*.cpp")
 
 foreach(SOURCE_FILE ${EXAMPLE_SOURCES})
   get_filename_component(EXEC_NAME ${SOURCE_FILE} NAME_WE)

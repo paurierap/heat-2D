@@ -37,3 +37,4 @@ Physical Curve("insulated_top_hook")    = {3, 4, 5, 6};
 Physical Curve("insulated_bottom_hook") = {7, 8, 9, 10};
 
 Physical Surface("domain") = {1};
+

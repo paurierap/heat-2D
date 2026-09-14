@@ -14,6 +14,7 @@ target_link_libraries(HeatPDE
   INTERFACE
   solver
   ode
+  ZLIB::ZLIB
 )
 
 if(HEAT2D_BUILD_TESTS)
